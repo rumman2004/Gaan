@@ -1,4 +1,4 @@
-name: Android Build & Sign
+name: Android Build
 
 on:
   push:
@@ -66,24 +66,24 @@ jobs:
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
           GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
           GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
-        run: ./gradlew assembleUniversalGmsRelease
+        run: ./gradlew assembleUniversalGmsDebug
 
       - name: Rename and Organize APKs
         run: |
           VERSION_NAME=$(grep "versionName =" app/build.gradle.kts | head -n 1 | awk -F '"' '{print $2}')
           echo "App Version: $VERSION_NAME"
-          mkdir -p app/build/outputs/apk/release-artifacts
-          find app/build/outputs/apk/ -name "*.apk" ! -path "*/release-artifacts/*" | while read -r apk_path; do
-              target_name="Echo-${VERSION_NAME}-Universal.apk"
-              cp "$apk_path" "app/build/outputs/apk/release-artifacts/$target_name"
-              echo "Copied $apk_path -> app/build/outputs/apk/release-artifacts/$target_name"
+          mkdir -p app/build/outputs/apk/debug-artifacts
+          find app/build/outputs/apk/ -name "*.apk" ! -path "*/debug-artifacts/*" | while read -r apk_path; do
+              target_name="Gaan-${VERSION_NAME}-Universal.apk"
+              cp "$apk_path" "app/build/outputs/apk/debug-artifacts/$target_name"
+              echo "Copied $apk_path -> app/build/outputs/apk/debug-artifacts/$target_name"
           done
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Echo-Universal
-          path: app/build/outputs/apk/release-artifacts/*.apk
+          name: Gaan-Universal
+          path: app/build/outputs/apk/debug-artifacts/*.apk
 
       - name: Parse Release Info
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -101,7 +101,7 @@ jobs:
         with:
           name: ${{ env.RELEASE_TITLE }}
           body_path: release-body.md
-          files: app/build/outputs/apk/release-artifacts/*.apk
+          files: app/build/outputs/apk/debug-artifacts/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -167,7 +167,7 @@ jobs:
                 title: "Release Changelog",
                 description: $desc,
                 color: 16738660,
-                footer: { text: "Echo Music Automation System" }
+                footer: { text: "Gaan Automation System" }
               }]
             }' > discord-release-payload.json
 
@@ -216,7 +216,7 @@ jobs:
                 fields: [
                   { name: "Download APK", value: ("[" + $label + "](" + $link + ")"), inline: false }
                 ],
-                footer: { text: "Echo Music Automation System" }
+                footer: { text: "Gaan Automation System" }
               }]
             }' > discord-payload.json
 
