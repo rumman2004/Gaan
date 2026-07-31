@@ -32,7 +32,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-gms-universal-${{ hashFiles('**/*.gradle*') }}
+          key: ${{ runner.os }}-gradle-gms-universal-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/libs.versions.toml') }}
           restore-keys: |
             ${{ runner.os }}-gradle-gms-universal-
             ${{ runner.os }}-gradle-

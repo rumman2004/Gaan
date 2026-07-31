@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 import java.net.URL
 
@@ -33,8 +32,8 @@ android {
         applicationId = "com.gaan.music"
         minSdk = 26
         targetSdk = 36
-        versionCode = 218
-        versionName = "2.1.8"
+        versionCode = 526
+        versionName = "5.2.84"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -162,14 +161,6 @@ android {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
-    }
-
-    kotlin {
-        jvmToolchain(21)
-        compilerOptions {
-            freeCompilerArgs.add("-Xannotation-default-target=param-property")
-            jvmTarget.set(JvmTarget.JVM_21)
-        }
     }
 
     buildFeatures {
