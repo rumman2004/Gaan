@@ -1,4 +1,4 @@
-Gaan v5.2.84
+Gaan v2.1
 
 1. Playback Fix
 - Fixed HTTP 403 errors on `WEB_REMIX` caused by missing PoToken files.
