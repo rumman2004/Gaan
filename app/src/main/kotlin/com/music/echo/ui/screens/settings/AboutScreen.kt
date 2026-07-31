@@ -114,83 +114,37 @@ highlightKey: String? = null) {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item { AboutAppCard() }
-
             item {
                 AboutSectionCard(title = "Developer") {
                     AboutActionRow(
-                        icon = painterResource(R.drawable.website),
-                        title = "Website",
-                        subtitle = "iad1tya.cyou",
-                        onClick = { uriHandler.openUri("https://iad1tya.cyou") },
-                    )
-                    AboutDivider()
-                    AboutActionRow(
                         icon = painterResource(R.drawable.ic_instagram_new),
                         title = "Instagram",
-                        subtitle = "@iad1tya",
-                        onClick = { uriHandler.openUri("https://instagram.com/iad1tya") },
+                        subtitle = "@rumman.ig",
+                        onClick = { uriHandler.openUri("https://instagram.com/rumman.ig") }
                     )
                     AboutDivider()
                     AboutActionRow(
                         icon = painterResource(R.drawable.ic_x_new),
                         title = "X (Twitter)",
-                        subtitle = "@xad1tya",
-                        onClick = { uriHandler.openUri("https://x.com/xad1tya") },
-                    )
-                }
-            }
-
-            item {
-                AboutSectionCard(title = "Support") {
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.coffee),
-                        title = "Buy Me a Coffee",
-                        subtitle = "buymeacoffee.com/iad1tya",
-                        onClick = { uriHandler.openUri("https://buymeacoffee.com/iad1tya") },
-                    )
-                    AboutDivider()
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.ic_patreon_new),
-                        title = "Patreon",
-                        subtitle = "patreon.com/cw/iad1tya",
-                        onClick = { uriHandler.openUri("https://www.patreon.com/cw/iad1tya") },
-                    )
-                    AboutDivider()
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.upi_new),
-                        title = "UPI",
-                        subtitle = "iad1tya@upi",
-                        onClick = { uriHandler.openUri("https://intradeus.github.io/http-protocol-redirector/?r=upi://pay?pa=iad1tya@upi&pn=Aditya%20Yadav&am=&tn=Thank%20You%20so%20much%20for%20this%20support") },
-                    )
-                }
-            }
-
-            item {
-                AboutSectionCard(title = "App") {
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.github),
-                        title = "GitHub",
-                        subtitle = "EchoMusicApp/Echo-Music",
-                        onClick = { uriHandler.openUri("https://github.com/EchoMusicApp/Echo-Music") },
+                        subtitle = "@rumman_tw11",
+                        onClick = { uriHandler.openUri("https://x.com/rumman_tw11") }
                     )
                     AboutDivider()
                     AboutActionRow(
                         icon = painterResource(R.drawable.ic_discord_new),
                         title = "Discord",
-                        subtitle = "discord.gg/EcfV3AxH5c",
-                        onClick = { uriHandler.openUri("https://discord.gg/EcfV3AxH5c") },
+                        subtitle = "Rumman",
+                        onClick = { uriHandler.openUri("https://discord.com/users/740185922854715534") }
                     )
                     AboutDivider()
                     AboutActionRow(
-                        icon = painterResource(R.drawable.ic_telegram_new),
-                        title = "Telegram",
-                        subtitle = "t.me/EchoMusicApp",
-                        onClick = { uriHandler.openUri("https://t.me/EchoMusicApp") },
+                        icon = painterResource(R.drawable.github),
+                        title = "GitHub",
+                        subtitle = "GitHub Profile",
+                        onClick = { uriHandler.openUri("https://github.com/") }
                     )
                 }
             }
-
-
 
         }
     }
@@ -263,7 +217,7 @@ private fun AboutAppCard() {
                     )
                 } else {
                     coil3.compose.AsyncImage(
-                        model = "https://avatars.githubusercontent.com/u/147871321?v=4",
+                        model = "https://github.com/rumman2004.png",
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxSize()
@@ -276,7 +230,7 @@ private fun AboutAppCard() {
             Spacer(Modifier.height(4.dp))
             
             Text(
-                text = if (rotation <= 90f) "Echo Music" else "Developed by Aditya",
+                text = if (rotation <= 90f) "Gaan" else "Developed by Rumman Ahmed",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,

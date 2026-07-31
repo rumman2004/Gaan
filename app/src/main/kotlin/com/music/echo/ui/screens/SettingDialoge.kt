@@ -94,7 +94,7 @@ fun SettingDialoge(
                     Spacer(modifier = Modifier.size(24.dp))
                     
                     Text(
-                        text = "Echo Music",
+                        text = "Gaan",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
@@ -158,25 +158,7 @@ fun SettingDialoge(
                                 }
                             )
                         )
-                        if (audioQuality == AudioQuality.LOSSLESS) {
-                            add(
-                                Material3SettingsItem(
-                                    title = { Text("Donate for lossless music") },
-                                    customIcon = {
-                                        Text(
-                                            text = "$",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-                                        )
-                                    },
-                                    onClick = {
-                                        uriHandler.openUri("https://support.iad1tya.cyou")
-                                        onDismissRequest()
-                                    }
-                                )
-                            )
-                        }
+
                     }
                 )
 
@@ -248,14 +230,14 @@ fun SettingDialoge(
                         text = "Privacy Policy",
                         style = MaterialTheme.typography.bodySmall,
                         color = onSecondaryColor,
-                        modifier = Modifier.clickable { uriHandler.openUri("https://echomusic.fun/p/privacy-policy") }.padding(4.dp)
+                        modifier = Modifier.clickable { uriHandler.openUri("https://github.com/rumman2004/Gaan") }.padding(4.dp)
                     )
                     Text(text = " • ", color = onSecondaryColor, style = MaterialTheme.typography.bodySmall)
                     Text(
                         text = "Terms of Service",
                         style = MaterialTheme.typography.bodySmall,
                         color = onSecondaryColor,
-                        modifier = Modifier.clickable { uriHandler.openUri("https://echomusic.fun/p/toc") }.padding(4.dp)
+                        modifier = Modifier.clickable { uriHandler.openUri("https://github.com/rumman2004/Gaan") }.padding(4.dp)
                     )
                 }
             }

@@ -30,7 +30,7 @@ android {
 
 
     defaultConfig {
-        applicationId = "iad1tya.echo.music"
+        applicationId = "com.gaan.music"
         minSdk = 26
         targetSdk = 36
         versionCode = 526
