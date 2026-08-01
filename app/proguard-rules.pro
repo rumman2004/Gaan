@@ -170,13 +170,16 @@
 }
 
 ## Listen Together Serialization
--keep class com.music.echo.listentogether.** { *; }
--keepclassmembers class com.music.echo.listentogether.** {
+-keep class iad1tya.echo.music.listentogether.** { *; }
+-keepclassmembers class iad1tya.echo.music.listentogether.** {
     *;
 }
--keepclassmembers class com.music.echo.listentogether.** {
+-keepclassmembers class iad1tya.echo.music.listentogether.** {
     *** Companion;
 }
--keepclasseswithmembers class com.music.echo.listentogether.** {
+-keepclasseswithmembers class iad1tya.echo.music.listentogether.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
+
+## Protobuf Lite
+-keep class * extends com.google.protobuf.GeneratedMessageLite { *; }
