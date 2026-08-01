@@ -1353,15 +1353,29 @@ object YouTube {
     }
 
     suspend fun visitorData(): Result<String> = runCatching {
-        Json.parseToJsonElement(innerTube.getSwJsData().bodyAsText().substring(5))
-            .jsonArray[0]
-            .jsonArray[2]
-            .jsonArray.first {
-                (it as? JsonPrimitive)?.contentOrNull?.let { candidate ->
-                    VISITOR_DATA_REGEX.containsMatchIn(candidate)
-                } ?: false
+        val root = Json.parseToJsonElement(innerTube.getSwJsData().bodyAsText().substring(5))
+        var foundVisitorData: String? = null
+        
+        fun search(element: kotlinx.serialization.json.JsonElement) {
+            if (foundVisitorData != null) return
+            if (element is kotlinx.serialization.json.JsonPrimitive && element.isString) {
+                val content = element.content
+                if (VISITOR_DATA_REGEX.containsMatchIn(content) && content.length > 50) {
+                    foundVisitorData = content
+                }
+            } else if (element is kotlinx.serialization.json.JsonArray) {
+                for (child in element) {
+                    search(child)
+                }
+            } else if (element is kotlinx.serialization.json.JsonObject) {
+                for (value in element.values) {
+                    search(value)
+                }
             }
-            .jsonPrimitive.content
+        }
+        
+        search(root)
+        foundVisitorData ?: throw Exception("visitorData not found")
     }
 
     suspend fun accountInfo(): Result<AccountInfo> = runCatching {

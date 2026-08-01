@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/Echo-new.png" alt="Gaan Logo" width="140"/>
+  <img src="assets/Gaan.png" alt="Gaan Logo" width="140"/>
 
   <h1>Gaan</h1>
 
@@ -9,22 +9,10 @@
   [![GitHub Release](https://img.shields.io/github/v/release/rumman2004/Gaan?style=for-the-badge&color=6f42c1)](https://github.com/rumman2004/Gaan/releases)
   [![GitHub Stars](https://img.shields.io/github/stars/rumman2004/Gaan?style=for-the-badge&color=e3b341)](https://github.com/rumman2004/Gaan/stargazers)
   [![License](https://img.shields.io/github/license/rumman2004/Gaan?style=for-the-badge&color=28a745)](LICENSE)
-  [![Telegram](https://img.shields.io/badge/Telegram-Join-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/EchoMusicApp)
-  [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/EcfV3AxH5c)
-  [![Weblate](https://img.shields.io/weblate/progress/echo-music?server=https%3A%2F%2Fhosted.weblate.org&style=for-the-badge)](https://hosted.weblate.org/projects/echo-music/)
-  
-  <a href="https://trendshift.io/repositories/20485" target="_blank">
-    <img src="https://trendshift.io/api/badge/repositories/20485" alt="EchoMusicApp%2FEcho-Music | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/>
-  </a>
-
   <br>
 
   <a href="https://github.com/rumman2004/Gaan/download">
     <img src="assets/download.png" alt="Download" width="180"/>
-  </a>
-  &nbsp;
-  <a href="https://github.com/rumman2004/Gaan/obtainium">
-    <img src="assets/obtainium.png" alt="Get it on Obtainium" width="180"/>
   </a>
 </div>
 

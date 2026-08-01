@@ -142,7 +142,13 @@ object YTPlayerUtils {
 
         // Generate PoToken
         var poToken: PoTokenResult? = null
-        val sessionId = YouTube.visitorData
+        var sessionId = YouTube.visitorData
+        if (sessionId == null) {
+            Timber.tag(logTag).d("sessionId is null, fetching visitorData...")
+            sessionId = YouTube.visitorData().getOrNull()?.also { 
+                YouTube.visitorData = it 
+            }
+        }
         if (MAIN_CLIENT.useWebPoTokens && sessionId != null) {
             Timber.tag(logTag).d("Generating PoToken for WEB_REMIX with sessionId")
             try {

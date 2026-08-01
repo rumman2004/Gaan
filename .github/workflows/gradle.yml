@@ -6,6 +6,16 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a GitHub Release with the built APKs'
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: 'Release tag (e.g. v5.2.84). Required if create_release is true.'
+        required: false
+        type: string
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -75,7 +85,20 @@ jobs:
           mkdir -p app/keystore
           echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > app/keystore/release.keystore
 
-      - name: Build and Sign Release APK (Push to main / Dispatch / Tag)
+      - name: Determine build type
+        id: build_type
+        run: |
+          IS_TAG="${{ startsWith(github.ref, 'refs/tags/v') }}"
+          IS_MANUAL_RELEASE="${{ github.event.inputs.create_release == 'true' }}"
+          if [ "$IS_TAG" = "true" ] || [ "$IS_MANUAL_RELEASE" = "true" ]; then
+            echo "build_variant=Release" >> "$GITHUB_OUTPUT"
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build_variant=Release" >> "$GITHUB_OUTPUT"
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build Universal APK
         env:
           STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
@@ -84,24 +107,54 @@ jobs:
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
           GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
           GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
-        run: ./gradlew assembleUniversalGmsDebug
+        run: ./gradlew assembleUniversalGms${{ steps.build_type.outputs.build_variant }}
+
+      - name: Build per-architecture APKs (Release only)
+        if: steps.build_type.outputs.is_release == 'true'
+        env:
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+          GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
+          GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
+        run: |
+          ./gradlew assembleArm64GmsRelease
+          ./gradlew assembleArmeabiGmsRelease
+          ./gradlew assembleX86_64GmsRelease
 
       - name: Rename and Organize APKs
         run: |
           VERSION_NAME=$(grep "versionName =" app/build.gradle.kts | head -n 1 | awk -F '"' '{print $2}')
           echo "App Version: $VERSION_NAME"
-          mkdir -p app/build/outputs/apk/debug-artifacts
-          find app/build/outputs/apk/ -name "*.apk" ! -path "*/debug-artifacts/*" | while read -r apk_path; do
-              target_name="Gaan-${VERSION_NAME}-Universal.apk"
-              cp "$apk_path" "app/build/outputs/apk/debug-artifacts/$target_name"
-              echo "Copied $apk_path -> app/build/outputs/apk/debug-artifacts/$target_name"
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          mkdir -p app/build/outputs/apk/release-artifacts
+
+          # Universal APK — named gaan.apk for the in-app updater fallback URL
+          find app/build/outputs/apk/universalGms* -name "*.apk" | while read -r apk_path; do
+              cp "$apk_path" "app/build/outputs/apk/release-artifacts/gaan.apk"
+              echo "Copied $apk_path -> release-artifacts/gaan.apk"
           done
+
+          # Per-architecture APKs (only present for release builds)
+          for arch_dir in arm64Gms armeabiGms x86_64Gms; do
+              find "app/build/outputs/apk/${arch_dir}Release/" -name "*.apk" 2>/dev/null | while read -r apk_path; do
+                  arch_name=$(echo "$arch_dir" | sed 's/Gms$//')
+                  target_name="gaan-${VERSION_NAME}-${arch_name}.apk"
+                  cp "$apk_path" "app/build/outputs/apk/release-artifacts/$target_name"
+                  echo "Copied $apk_path -> release-artifacts/$target_name"
+              done
+          done
+
+          # Also keep a copy with the full name for the artifact upload
+          cp "app/build/outputs/apk/release-artifacts/gaan.apk" "app/build/outputs/apk/release-artifacts/Gaan-${VERSION_NAME}-Universal.apk" 2>/dev/null || true
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Gaan-Universal
-          path: app/build/outputs/apk/debug-artifacts/*.apk
+          path: app/build/outputs/apk/release-artifacts/*.apk
 
       - name: Parse Release Info
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -110,13 +163,35 @@ jobs:
           echo "RELEASE_TITLE=$TITLE" >> "$GITHUB_ENV"
           tail -n +3 RELEASE_INFO.md > release-body.md
 
+      - name: Determine Release Tag
+        id: release_tag
+        run: |
+          if [[ "${{ startsWith(github.ref, 'refs/tags/v') }}" == "true" ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+            echo "is_nightly=false" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event.inputs.create_release }}" == "true" ]]; then
+            TAG="${{ github.event.inputs.release_tag }}"
+            if [ -z "$TAG" ]; then
+              TAG="v$VERSION_NAME"
+            fi
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            echo "is_nightly=false" >> "$GITHUB_OUTPUT"
+            # Create the tag if it doesn't exist
+            git tag "$TAG" || true
+            git push origin "$TAG" || true
+          else
+            echo "tag=nightly" >> "$GITHUB_OUTPUT"
+            echo "is_nightly=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ env.RELEASE_TITLE }}
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          name: ${{ steps.release_tag.outputs.is_nightly == 'true' && 'Nightly Build' || env.RELEASE_TITLE }}
           body_path: release-body.md
-          files: app/build/outputs/apk/debug-artifacts/*.apk
+          prerelease: ${{ steps.release_tag.outputs.is_nightly == 'true' }}
+          files: app/build/outputs/apk/release-artifacts/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -183,7 +258,7 @@ jobs:
           fi
 
       - name: Send Discord Notification
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && !startsWith(github.ref, 'refs/tags/')
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && !startsWith(github.ref, 'refs/tags/') && github.event.inputs.create_release != 'true'
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           RELEASE_TITLE: ${{ env.RELEASE_TITLE }}

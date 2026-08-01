@@ -32,9 +32,9 @@ object UpdateNotificationHelper {
 
         
         val apkUrl = if (versionName.contains("nightly", ignoreCase = true)) {
-            "https://nightly.link/EchoMusicApp/workflows/nightly.yml/main/echomusic-gms-nightly.zip"
+            "https://nightly.link/rumman2004/Gaan/workflows/nightly.yml/main/gaan-gms-nightly.zip"
         } else {
-            "https://github.com/EchoMusicApp/Echo-Music/releases/download/$versionName/echomusic.apk"
+            "https://github.com/rumman2004/Gaan/releases/download/$versionName/gaan.apk"
         }
         val intent = Intent(Intent.ACTION_VIEW, apkUrl.toUri())
 

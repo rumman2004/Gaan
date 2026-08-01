@@ -113,9 +113,11 @@ class App : Application(), SingletonImageLoader.Factory {
             
             observeSettingsChanges()
             
-            launch(Dispatchers.Main) {
+           if (BuildConfig.ARCHITECTURE != "arm64-v8a" && BuildConfig.ARCHITECTURE != "armeabi-v7a") {
+            applicationScope.launch(Dispatchers.Main) {
                 runCatching { com.music.echo.utils.cipher.CipherDeobfuscator.prewarm() }
             }
+        }
         }
     }
 
