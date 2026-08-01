@@ -14,6 +14,8 @@
   <a href="https://github.com/rumman2004/Gaan/releases/latest/download/Gaan.apk">
     <img src="assets/download.png" alt="Download" width="180"/>
   </a>
+  <br>
+  <img src="assets/qr_code.png" alt="Download QR Code" width="150"/>
 </div>
 
 ---
