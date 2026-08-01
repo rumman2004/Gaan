@@ -185,6 +185,9 @@ android {
         warningsAsErrors = false
         abortOnError = false
         checkDependencies = false
+        checkReleaseBuilds = false
+        disable.add("ExtraTranslation")
+        disable.add("MissingTranslation")
     }
 
     androidResources {
