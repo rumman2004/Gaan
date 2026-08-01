@@ -187,7 +187,7 @@ jobs:
           tag_name: ${{ steps.release_tag.outputs.tag }}
           name: ${{ steps.release_tag.outputs.is_nightly == 'true' && 'Nightly Build' || env.RELEASE_TITLE }}
           body_path: release-body.md
-          prerelease: ${{ steps.release_tag.outputs.is_nightly == 'true' }}
+          prerelease: false
           files: app/build/outputs/apk/release-artifacts/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
