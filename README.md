@@ -5,8 +5,7 @@
 
   <p><strong>A modern Android music app with ad-free streaming, synced lyrics, offline playback, and an intuitive user experience.
 </strong></p>
-
-  [![GitHub Release](https://img.shields.io/github/v/release/rumman2004/Gaan?style=for-the-badge&color=6f42c1)](https://github.com/rumman2004/Gaan/releases)
+  [![GitHub Release](https://img.shields.io/github/v/release/rumman2004/Gaan?include_prereleases&style=for-the-badge&color=6f42c1)](https://github.com/rumman2004/Gaan/releases)
   [![GitHub Stars](https://img.shields.io/github/stars/rumman2004/Gaan?style=for-the-badge&color=e3b341)](https://github.com/rumman2004/Gaan/stargazers)
   [![License](https://img.shields.io/github/license/rumman2004/Gaan?style=for-the-badge&color=28a745)](LICENSE)
   <br>
