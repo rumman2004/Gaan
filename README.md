@@ -11,7 +11,7 @@
   [![License](https://img.shields.io/github/license/rumman2004/Gaan?style=for-the-badge&color=28a745)](LICENSE)
   <br>
 
-  <a href="https://github.com/rumman2004/Gaan/download">
+  <a href="https://github.com/rumman2004/Gaan/releases/latest/download/Gaan.apk">
     <img src="assets/download.png" alt="Download" width="180"/>
   </a>
 </div>
