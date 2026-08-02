@@ -838,9 +838,13 @@ class ListenTogetherManager @Inject constructor(
                 PlaybackActions.PLAY -> {
                     val basePos = action.position ?: 0L
                     val now = System.currentTimeMillis()
-                    // The serverTime calculation mixes device time with server time, causing major
-                    // desyncs if the device clock is slightly off. Relying purely on basePos is safer.
-                    val adjustedPos = basePos
+                    val adjustedPos = action.serverTime?.let { serverTime ->
+                        val diff = now - serverTime
+                        // Only apply latency compensation if it's within a realistic network delay (0 to 2000ms).
+                        // If it's outside this range, the device clock is out of sync with the server, so we ignore it
+                        // to prevent skipping to the end of the song.
+                        if (diff in 0..2000) basePos + diff else basePos
+                    } ?: basePos
 
                     Timber.tag(TAG).d("Guest: PLAY at position $adjustedPos, currently playing=${player.playWhenReady}")
 
