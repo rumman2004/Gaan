@@ -179,6 +179,10 @@ jobs:
           else
             echo "tag=nightly" >> "$GITHUB_OUTPUT"
             echo "is_nightly=true" >> "$GITHUB_OUTPUT"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -f nightly
+            git push -f origin nightly
           fi
 
       - name: Create GitHub Release
@@ -188,6 +192,7 @@ jobs:
           name: ${{ steps.release_tag.outputs.is_nightly == 'true' && 'Nightly Build' || env.RELEASE_TITLE }}
           body_path: release-body.md
           prerelease: false
+          make_latest: true
           files: app/build/outputs/apk/release-artifacts/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
