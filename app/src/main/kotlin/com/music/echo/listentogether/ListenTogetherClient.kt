@@ -820,6 +820,13 @@ class ListenTogetherClient @Inject constructor(
                             approveJoin(payload.userId)
                         } else {
                             
+                            scope.launch(Dispatchers.Main) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.listen_together_join_request_notification, payload.username),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
                             if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
                                 showJoinRequestNotification(payload)
                             }

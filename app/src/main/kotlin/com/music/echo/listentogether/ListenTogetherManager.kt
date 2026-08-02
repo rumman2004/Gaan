@@ -788,7 +788,13 @@ class ListenTogetherManager @Inject constructor(
         Timber.tag(TAG).d("Applying pending sync: track=$pendingTrackId, pos=${pending.position}, play=${pending.isPlaying}")
         isSyncing = true
 
-        val targetPos = pending.position
+        val now = System.currentTimeMillis()
+        val timeElapsed = now - pending.lastUpdate
+        val targetPos = if (pending.isPlaying) {
+            pending.position + timeElapsed
+        } else {
+            pending.position
+        }
         val posDiff = kotlin.math.abs(player.currentPosition - targetPos)
         val willPlay = pending.isPlaying
         
@@ -966,6 +972,7 @@ class ListenTogetherManager @Inject constructor(
                         
                         
                         lastSyncActionTime = 0L
+                        pendingSyncState = null
                         
                         
                         if (action.queue != null && action.queue.isNotEmpty()) {
