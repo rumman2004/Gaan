@@ -145,10 +145,7 @@ highlightKey: String? = null) {
         DynamicThemeKey,
         defaultValue = true
     )
-    val (enableLegacyIcon, onEnableLegacyIconChange) = rememberPreference(
-        iad1tya.echo.music.constants.EnableLegacyIconKey,
-        defaultValue = false
-    )
+
     val (enableHighRefreshRate, onEnableHighRefreshRateChange) = rememberPreference(
         iad1tya.echo.music.constants.EnableHighRefreshRateKey,
         defaultValue = true
@@ -164,25 +161,6 @@ highlightKey: String? = null) {
     
     val isUsingCustomColor = selectedThemeColorInt != DefaultThemeColor.toArgb()
     val coroutineScope = rememberCoroutineScope()
-
-    fun handleIconChange(legacyEnabled: Boolean) {
-        onEnableLegacyIconChange(legacyEnabled)
-        IconUtils.setIcon(activity, false, legacyEnabled)
-        coroutineScope.launch {
-            val result = snackbarHostState.showSnackbar(
-                message = "Icon updated, restart to apply",
-                actionLabel = "Restart"
-            )
-            if (result == SnackbarResult.ActionPerformed) {
-                val packageManager = activity.packageManager
-                val intent = packageManager.getLaunchIntentForPackage(activity.packageName)
-                val componentName = intent?.component
-                val mainIntent = Intent.makeRestartActivityTask(componentName)
-                activity.startActivity(mainIntent)
-                Runtime.getRuntime().exit(0)
-            }
-        }
-    }
 
 
     val (useNewPlayerDesign, onUseNewPlayerDesignChange) = rememberPreference(
@@ -1007,31 +985,7 @@ highlightKey: String? = null) {
 
 
 
-                add(
-                    Material3SettingsItem(
-    isHighlighted = (highlightKey == stringResource(R.string.legacy_icon)),
-                        icon = painterResource(R.drawable.legacy_icon_raster),
-                        tintIcon = false,
-                        title = { Text(stringResource(R.string.legacy_icon)) },
-                        description = { Text(stringResource(R.string.legacy_icon_desc)) },
-                        trailingContent = {
-                            Switch(
-                                checked = enableLegacyIcon,
-                                onCheckedChange = { handleIconChange(it) },
-                                thumbContent = {
-                                    Icon(
-                                        painter = painterResource(
-                                            id = if (enableLegacyIcon) R.drawable.check else R.drawable.close
-                                        ),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(SwitchDefaults.IconSize)
-                                    )
-                                }
-                            )
-                        },
-                        onClick = { handleIconChange(!enableLegacyIcon) }
-                    )
-                )
+
                 add(
                     Material3SettingsItem(
     isHighlighted = (highlightKey == stringResource(R.string.theme)),

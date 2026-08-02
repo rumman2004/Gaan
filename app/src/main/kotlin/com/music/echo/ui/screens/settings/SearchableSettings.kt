@@ -171,8 +171,6 @@ fun getAllSearchableSettings(): List<Triple<String, String, String>> {
             Triple(stringResource(R.string.keep_screen_on_when_player_is_expanded), "Player and audio", "settings/player"),
             Triple(stringResource(R.string.last_song_listened), "Content", "settings/content"),
             Triple(stringResource(R.string.left), "Appearance", "settings/appearance"),
-            Triple(stringResource(R.string.legacy_icon), "Appearance", "settings/appearance"),
-            Triple(stringResource(R.string.legacy_icon_desc), "Appearance", "settings/appearance"),
             Triple(stringResource(R.string.line_by_line_dialog_desc), "Romanization", "settings/appearance"),
             Triple(stringResource(R.string.line_by_line_dialog_title), "Romanization", "settings/appearance"),
             Triple(stringResource(R.string.line_by_line_option_desc), "Romanization", "settings/appearance"),

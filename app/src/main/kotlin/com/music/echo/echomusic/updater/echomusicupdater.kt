@@ -668,9 +668,7 @@ suspend fun checkForUpdate(
             
             val currentVersion = BuildConfig.VERSION_NAME
             val targetTagName = targetRelease.getString("tag_name")
-            val currentClean = currentVersion.removePrefix("b").removePrefix("v").trim()
-            val targetClean = targetTagName.removePrefix("b").removePrefix("v").trim()
-            val shouldShow = currentClean != targetClean
+            val shouldShow = isNewerVersion(targetTagName, currentVersion)
 
             if (shouldShow) {
                 val tagWithPrefix = targetRelease.getString("tag_name")

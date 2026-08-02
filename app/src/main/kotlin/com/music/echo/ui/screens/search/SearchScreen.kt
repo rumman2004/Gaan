@@ -400,7 +400,7 @@ fun SearchScreen(
                                 onClick = { selectedTabIndex = 1 },
                                 selectedContentColor = MaterialTheme.colorScheme.primary,
                                 unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                text = { Text("Echo Chart") }
+                                text = { Text("Suggestion") }
                             )
                             Tab(
                                 selected = selectedTabIndex == 2,
