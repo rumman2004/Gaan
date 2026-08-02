@@ -838,9 +838,9 @@ class ListenTogetherManager @Inject constructor(
                 PlaybackActions.PLAY -> {
                     val basePos = action.position ?: 0L
                     val now = System.currentTimeMillis()
-                    val adjustedPos = action.serverTime?.let { serverTime ->
-                        basePos + kotlin.math.max(0L, now - serverTime)
-                    } ?: basePos
+                    // The serverTime calculation mixes device time with server time, causing major
+                    // desyncs if the device clock is slightly off. Relying purely on basePos is safer.
+                    val adjustedPos = basePos
 
                     Timber.tag(TAG).d("Guest: PLAY at position $adjustedPos, currently playing=${player.playWhenReady}")
 
