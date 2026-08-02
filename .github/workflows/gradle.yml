@@ -158,7 +158,13 @@ jobs:
         run: |
           TITLE=$(head -n 1 RELEASE_INFO.md | sed 's/^# //')
           echo "RELEASE_TITLE=$TITLE" >> "$GITHUB_ENV"
-          tail -n +3 RELEASE_INFO.md > release-body.md
+          
+          if [[ "${{ startsWith(github.ref, 'refs/tags/v') }}" == "false" && "${{ github.event.inputs.create_release }}" != "true" ]]; then
+            echo "### Recent Changes" > release-body.md
+            git log -3 --pretty=format:"- %s" >> release-body.md
+          else
+            tail -n +3 RELEASE_INFO.md > release-body.md
+          fi
 
       - name: Determine Release Tag
         id: release_tag
