@@ -1482,17 +1482,87 @@ fun HomeScreen(
                                 }
 
                                 item(key = "account_playlists_list") {
-                                    LazyRow(
-                                        contentPadding = WindowInsets.systemBars
-                                            .only(WindowInsetsSides.Horizontal)
-                                            .asPaddingValues(),
-                                        modifier = Modifier.animateItem()
-                                    ) {
-                                        items(
-                                            items = accountPlaylists.distinctBy { it.id },
-                                            key = { it.id },
-                                        ) { item ->
-                                            ytGridItem(item)
+                                    val distinctPlaylists = accountPlaylists.distinctBy { it.id }
+                                    HorizontalCenteredHeroCarousel(
+                                        state = rememberCarouselState { distinctPlaylists.size },
+                                        maxItemWidth = 250.dp,
+                                        itemSpacing = 8.dp,
+                                        contentPadding = PaddingValues(horizontal = 16.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(290.dp)
+                                            .animateItem()
+                                    ) { index ->
+                                        val playlist = distinctPlaylists[index]
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .maskClip(MaterialTheme.shapes.extraLarge)
+                                                .maskBorder(
+                                                    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                                    MaterialTheme.shapes.extraLarge
+                                                )
+                                                .focusable()
+                                                .combinedClickable(
+                                                    onClick = {
+                                                        navController.navigateToPlaylistItem(playlist)
+                                                    },
+                                                    onLongClick = {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        menuState.show {
+                                                            YouTubePlaylistMenu(
+                                                                playlist = playlist,
+                                                                coroutineScope = scope,
+                                                                onDismiss = menuState::dismiss
+                                                            )
+                                                        }
+                                                    }
+                                                )
+                                        ) {
+                                            AsyncImage(
+                                                model = coil3.request.ImageRequest.Builder(LocalContext.current)
+                                                    .data(playlist.thumbnail)
+                                                    .crossfade(true)
+                                                    .build(),
+                                                contentDescription = null,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(
+                                                        Brush.verticalGradient(
+                                                            colors = listOf(
+                                                                Color.Transparent,
+                                                                Color.Transparent,
+                                                                Color.Black.copy(alpha = 0.7f)
+                                                            )
+                                                        )
+                                                    )
+                                            )
+
+                                            Column(
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomStart)
+                                                    .padding(16.dp)
+                                            ) {
+                                                Text(
+                                                    text = playlist.title,
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    color = Color.White,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Text(
+                                                    text = playlist.author?.name ?: "",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = Color.White.copy(alpha = 0.7f),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         }
                                     }
                                 }

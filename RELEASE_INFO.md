@@ -8,3 +8,6 @@
 - Fixed Update Notification parsing to properly alert users of new versions
 - Improved notification delivery with proper formatting
 - Integrated Telegram Bot and Discord Webhook for automated release announcements
+- Fixed Spotify login integration so that accounts connect and sync successfully
+- Ensured Spotify playlist import functionality works properly
+- Redesigned the Home Screen UI to feature a new Hero Carousel for User Playlists
