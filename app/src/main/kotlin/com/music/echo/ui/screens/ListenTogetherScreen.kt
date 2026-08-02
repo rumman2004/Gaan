@@ -268,6 +268,7 @@ fun ListenTogetherScreen(
                         onAllowParticipantControlChange = { enabled ->
                             listenTogetherManager.updateRoomSettings(enabled)
                         },
+                        onForceSync = { listenTogetherManager.requestSync() },
                         context = context,
                         navController = navController
                     )
@@ -695,6 +696,7 @@ private fun RoomStatusCard(
     isHost: Boolean,
     allowParticipantControl: Boolean,
     onAllowParticipantControlChange: (Boolean) -> Unit,
+    onForceSync: () -> Unit,
     context: Context,
     navController: NavController
 ) {
@@ -739,6 +741,21 @@ private fun RoomStatusCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            FilledTonalButton(
+                onClick = onForceSync,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.sync),
+                    contentDescription = "Force Sync",
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Force Sync")
+            }
 
             if (isHost) {
                 Spacer(modifier = Modifier.height(16.dp))

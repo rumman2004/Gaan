@@ -1619,12 +1619,26 @@ class ListenTogetherManager @Inject constructor(
 
     
     fun requestSync() {
-        if (!isGuestPlaybackRestricted) {
-            Timber.tag(TAG).d("requestSync: not applicable (isGuestPlaybackRestricted=$isGuestPlaybackRestricted)")
-            return
+        if (isHost) {
+            Timber.tag(TAG).d("Host: Forcing sync to guests")
+            val connection = playerConnection ?: return
+            val player = connection.player
+            player.currentMetadata?.let { metadata ->
+                sendTrackChangeInternal(metadata)
+            }
+            sendSyncQueue(player)
+            val playWhenReady = player.playWhenReady
+            val position = player.currentPosition
+            sendPlaybackActionWithSync {
+                client.sendPlaybackAction(
+                    if (playWhenReady) PlaybackActions.PLAY else PlaybackActions.PAUSE,
+                    position = position
+                )
+            }
+        } else {
+            Timber.tag(TAG).d("Guest: Requesting sync from server")
+            client.requestSync()
         }
-        Timber.tag(TAG).d("Requesting sync from server")
-        client.requestSync()
     }
 
     
