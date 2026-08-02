@@ -1626,7 +1626,15 @@ class ListenTogetherManager @Inject constructor(
             player.currentMetadata?.let { metadata ->
                 sendTrackChangeInternal(metadata)
             }
-            sendSyncQueue(player)
+            val tracks = connection.queueWindows.value.map { it.toTrackInfo() }
+            val queueTitle = try { connection.queueTitle.value } catch (e: Exception) { null }
+            sendPlaybackActionWithSync {
+                client.sendPlaybackAction(
+                    PlaybackActions.SYNC_QUEUE,
+                    queueTitle = queueTitle,
+                    queue = tracks
+                )
+            }
             val playWhenReady = player.playWhenReady
             val position = player.currentPosition
             sendPlaybackActionWithSync {
