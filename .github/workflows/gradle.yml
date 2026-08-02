@@ -204,8 +204,8 @@ jobs:
           tag_name: ${{ steps.release_tag.outputs.tag }}
           name: ${{ steps.release_tag.outputs.is_nightly == 'true' && 'Nightly Build' || env.RELEASE_TITLE }}
           body_path: release-body.md
-          prerelease: false
-          make_latest: true
+          prerelease: ${{ steps.release_tag.outputs.is_nightly == 'true' }}
+          make_latest: ${{ steps.release_tag.outputs.is_nightly != 'true' }}
           files: |
             app/build/outputs/apk/release-artifacts/*.apk
             app/build/outputs/apk/release-artifacts/*.zip
