@@ -125,6 +125,7 @@ Gaan delivers a seamless, premium listening experience by leveraging YouTube Mus
 ### Integrations
 - **Music Sharing via Odesli** — Share songs as Song.link for cross-platform listening.
 - **Set as Ringtone** — Directly set any song as your device ringtone.
+- **Automated Announcements** — Built-in GitHub Actions integration to send release notifications directly to Telegram Bots and Discord Webhooks.
 
 ### Smart Playback
 - **Pause on Mute** — Auto-pause when your device is muted.
