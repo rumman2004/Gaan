@@ -1044,6 +1044,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.enable_dynamic_theme)),
                             icon = painterResource(R.drawable.palette),
                             title = { Text(stringResource(R.string.enable_dynamic_theme)) },
+                            description = { Text(stringResource(R.string.enable_dynamic_theme_desc)) },
                             trailingContent = {
                                 Switch(
                                     checked = dynamicTheme,
@@ -1277,6 +1278,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.enable_swipe_thumbnail)),
                     icon = painterResource(R.drawable.swipe),
                     title = { Text(stringResource(R.string.enable_swipe_thumbnail)) },
+                    description = { Text(stringResource(R.string.enable_swipe_thumbnail_desc)) },
                     trailingContent = {
                         Switch(
                             checked = swipeThumbnail,
@@ -1604,6 +1606,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.lyrics_click_change)),
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_click_change)) },
+                    description = { Text(stringResource(R.string.lyrics_click_change_desc)) },
                     trailingContent = {
                         Switch(
                             checked = lyricsClick,
@@ -1625,6 +1628,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.lyrics_auto_scroll)),
                     icon = painterResource(R.drawable.lyrics),
                     title = { Text(stringResource(R.string.lyrics_auto_scroll)) },
+                    description = { Text(stringResource(R.string.lyrics_auto_scroll_desc)) },
                     trailingContent = {
                         Switch(
                             checked = lyricsScroll,
@@ -1753,6 +1757,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.swipe_song_to_add)),
                     icon = painterResource(R.drawable.swipe),
                     title = { Text(stringResource(R.string.swipe_song_to_add)) },
+                    description = { Text(stringResource(R.string.swipe_song_to_add_desc)) },
                     trailingContent = {
                         Switch(
                             checked = swipeToSong,
@@ -1796,6 +1801,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.swipe_song_to_remove)),
                     icon = painterResource(R.drawable.swipe),
                     title = { Text(stringResource(R.string.swipe_song_to_remove)) },
+                    description = { Text(stringResource(R.string.swipe_song_to_remove_desc)) },
                     trailingContent = {
                         Switch(
                             checked = swipeToRemoveSong,
@@ -1870,6 +1876,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.show_liked_playlist)),
                     icon = painterResource(R.drawable.favorite),
                     title = { Text(stringResource(R.string.show_liked_playlist)) },
+                    description = { Text(stringResource(R.string.show_liked_playlist_desc)) },
                     trailingContent = {
                         Switch(
                             checked = showLikedPlaylist,
@@ -1891,6 +1898,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.show_downloaded_playlist)),
                     icon = painterResource(R.drawable.offline),
                     title = { Text(stringResource(R.string.show_downloaded_playlist)) },
+                    description = { Text(stringResource(R.string.show_downloaded_playlist_desc)) },
                     trailingContent = {
                         Switch(
                             checked = showDownloadedPlaylist,
@@ -1912,6 +1920,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.action_exported)),
                     icon = painterResource(R.drawable.download),
                     title = { Text(stringResource(R.string.action_exported)) },
+                    description = { Text(stringResource(R.string.action_exported_desc)) },
                     trailingContent = {
                         Switch(
                             checked = showExportedPlaylist,
@@ -1933,6 +1942,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.show_top_playlist)),
                     icon = painterResource(R.drawable.trending_up),
                     title = { Text(stringResource(R.string.show_top_playlist)) },
+                    description = { Text(stringResource(R.string.show_top_playlist_desc)) },
                     trailingContent = {
                         Switch(
                             checked = showTopPlaylist,
@@ -1954,6 +1964,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.show_cached_playlist)),
                     icon = painterResource(R.drawable.cached),
                     title = { Text(stringResource(R.string.show_cached_playlist)) },
+                    description = { Text(stringResource(R.string.show_cached_playlist_desc)) },
                     trailingContent = {
                         Switch(
                             checked = showCachedPlaylist,

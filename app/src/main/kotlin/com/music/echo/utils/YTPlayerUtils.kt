@@ -390,7 +390,7 @@ object YTPlayerUtils {
                     else -> 0
                 }
 
-                if (audioQuality == AudioQuality.OPUS && format.audioQuality != "AUDIO_QUALITY_HIGH" && format.audioQuality != "AUDIO_QUALITY_LOSSLESS" && hasHighQuality) {
+                if (audioQuality == AudioQuality.OPUS && format.audioQuality != "AUDIO_QUALITY_HIGH" && hasHighQuality) {
                     val isBetter = bestFallbackFormat == null ||
                         compareValuesBy(
                             format, bestFallbackFormat,
@@ -464,7 +464,7 @@ object YTPlayerUtils {
             }
         }
 
-        if (audioQuality == AudioQuality.OPUS && format?.audioQuality != "AUDIO_QUALITY_HIGH" && format?.audioQuality != "AUDIO_QUALITY_LOSSLESS" && bestFallbackFormat != null) {
+        if (audioQuality == AudioQuality.OPUS && format?.audioQuality != "AUDIO_QUALITY_HIGH" && bestFallbackFormat != null) {
             Timber.tag(logTag).d("Using best fallback format: ${bestFallbackFormat.mimeType}, bitrate: ${bestFallbackFormat.bitrate}")
             format = bestFallbackFormat
             streamUrl = bestFallbackUrl

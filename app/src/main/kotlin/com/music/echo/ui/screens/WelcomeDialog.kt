@@ -93,6 +93,13 @@ fun WelcomeDialog(
                         subtitle = "GitHub Profile",
                         onClick = { uriHandler.openUri("https://github.com/rumman2004") }
                     )
+                    WelcomeDivider()
+                    WelcomeActionRow(
+                        icon = painterResource(R.drawable.send_chat),
+                        title = "Telegram",
+                        subtitle = "Community Channel",
+                        onClick = { uriHandler.openUri("https://t.me/gaanrelease") }
+                    )
                 }
                 
                 Spacer(modifier = Modifier.height(4.dp))
