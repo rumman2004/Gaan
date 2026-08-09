@@ -143,6 +143,13 @@ highlightKey: String? = null) {
                         subtitle = "GitHub Profile",
                         onClick = { uriHandler.openUri("https://github.com/") }
                     )
+                    AboutDivider()
+                    AboutActionRow(
+                        icon = painterResource(R.drawable.send_chat),
+                        title = "Telegram",
+                        subtitle = "Community Channel",
+                        onClick = { uriHandler.openUri("https://t.me/gaanrelease") }
+                    )
                 }
             }
 

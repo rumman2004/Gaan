@@ -1142,13 +1142,13 @@ class MainActivity : ComponentActivity() {
                                                 shuffleContentDescription = stringResource(R.string.shuffle),
                                                 onMusicRecognitionClick = onMusicRecognitionClick,
                                                 musicRecognitionContentDescription = stringResource(R.string.recognition),
-                                                onSettingsClick = { 
-                                                    navController.navigate("settings") {
+                                                onAiHubClick = { 
+                                                    navController.navigate("settings/ai") {
                                                         launchSingleTop = true
                                                     }
                                                 },
-                                                settingsIconRes = R.drawable.settings,
-                                                settingsContentDescription = stringResource(R.string.settings),
+                                                aiHubIconRes = R.drawable.sparks,
+                                                aiHubContentDescription = stringResource(R.string.ai_lyrics_translation),
                                                 isSelected = { screen ->
                                                     currentRoute == screen.route || currentRoute?.startsWith("${screen.route}/") == true
                                                 },
@@ -1564,7 +1564,37 @@ class MainActivity : ComponentActivity() {
     ) {
         if (intent.action == android.provider.MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH) {
             val query = intent.getStringExtra(android.app.SearchManager.QUERY) ?: return
-            navController.navigate("search/${URLEncoder.encode(query, "UTF-8")}")
+            
+            val connection = this.playerConnection
+            if (connection != null) {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        val searchResult = com.music.innertube.YouTube.search(query, com.music.innertube.YouTube.SearchFilter.FILTER_SONG).getOrNull()
+                        val topSong = searchResult?.items?.firstOrNull() as? com.music.innertube.models.SongItem
+                        if (topSong != null) {
+                            withContext(Dispatchers.Main) {
+                                connection.playQueue(
+                                    iad1tya.echo.music.playback.queues.YouTubeQueue(
+                                        endpoint = topSong.endpoint ?: com.music.innertube.models.WatchEndpoint(videoId = topSong.id),
+                                        preloadItem = topSong.toMediaMetadata()
+                                    )
+                                )
+                                android.widget.Toast.makeText(this@MainActivity, "Playing $query", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            withContext(Dispatchers.Main) {
+                                navController.navigate("search/${URLEncoder.encode(query, "UTF-8")}")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            navController.navigate("search/${URLEncoder.encode(query, "UTF-8")}")
+                        }
+                    }
+                }
+            } else {
+                navController.navigate("search/${URLEncoder.encode(query, "UTF-8")}")
+            }
         }
     }
 }

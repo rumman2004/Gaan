@@ -258,11 +258,10 @@ highlightKey: String? = null) {
             },
             title = stringResource(R.string.audio_quality),
             current = audioQuality,
-            values = listOf(AudioQuality.OPUS, AudioQuality.LOSSLESS),
+            values = listOf(AudioQuality.OPUS),
             valueText = {
                 when (it) {
                     AudioQuality.OPUS -> "Opus"
-                    AudioQuality.LOSSLESS -> "Lossless"
                 }
             },
             valueDescription = {
@@ -280,11 +279,10 @@ highlightKey: String? = null) {
             },
             title = stringResource(R.string.download_quality_title),
             current = downloadQuality,
-            values = listOf(iad1tya.echo.music.constants.DownloadQuality.YOUTUBE, iad1tya.echo.music.constants.DownloadQuality.LOSSLESS),
+            values = listOf(iad1tya.echo.music.constants.DownloadQuality.YOUTUBE),
             valueText = {
                 when (it) {
-                    iad1tya.echo.music.constants.DownloadQuality.YOUTUBE -> "YouTube Music (AAC/Default)"
-                    iad1tya.echo.music.constants.DownloadQuality.LOSSLESS -> "Lossless"
+                    iad1tya.echo.music.constants.DownloadQuality.YOUTUBE -> "YouTube Audio"
                 }
             }
         )
@@ -375,7 +373,7 @@ highlightKey: String? = null) {
                         Text(
                             when (audioQuality) {
                                 AudioQuality.OPUS -> "Opus"
-                                AudioQuality.LOSSLESS -> "Lossless"
+                                else -> "Opus"
                             }
                         )
                     },
@@ -390,7 +388,7 @@ highlightKey: String? = null) {
                         Text(
                             when (downloadQuality) {
                                 iad1tya.echo.music.constants.DownloadQuality.YOUTUBE -> "YouTube Music (AAC/Default)"
-                                iad1tya.echo.music.constants.DownloadQuality.LOSSLESS -> "Lossless"
+                                else -> "YouTube Music (AAC/Default)"
                             }
                         )
                     },
@@ -398,36 +396,28 @@ highlightKey: String? = null) {
                 ))
 
 
-                val isLosslessSelected = audioQuality == AudioQuality.LOSSLESS
                 add(Material3SettingsItem(
     isHighlighted = (highlightKey == stringResource(R.string.crossfade)),
                     icon = painterResource(R.drawable.linear_scale),
                     title = { Text(stringResource(R.string.crossfade)) },
                     description = { 
-                        if (isLosslessSelected) {
-                            Text("Crossfade is disabled while using Lossless")
-                        } else {
-                            Text(stringResource(R.string.crossfade_desc)) 
-                        }
+                        Text(stringResource(R.string.crossfade_desc)) 
                     },
                     showBadge = true,
                     trailingContent = {
                         Switch(
-                            checked = if (isLosslessSelected) false else crossfadeEnabled,
-                            enabled = !isLosslessSelected,
+                            checked = crossfadeEnabled,
                             onCheckedChange = {
-                                if (!isLosslessSelected) {
-                                    if (!crossfadeEnabled) {
-                                        showCrossfadeBetaDialog = true
-                                    } else {
-                                        onCrossfadeEnabledChange(false)
-                                    }
+                                if (!crossfadeEnabled) {
+                                    showCrossfadeBetaDialog = true
+                                } else {
+                                    onCrossfadeEnabledChange(false)
                                 }
                             },
                             thumbContent = {
                                 Icon(
                                     painter = painterResource(
-                                        id = if (!isLosslessSelected && crossfadeEnabled) R.drawable.check else R.drawable.close
+                                        id = if (crossfadeEnabled) R.drawable.check else R.drawable.close
                                     ),
                                     contentDescription = null,
                                     modifier = Modifier.size(SwitchDefaults.IconSize)
@@ -436,16 +426,14 @@ highlightKey: String? = null) {
                         )
                     },
                     onClick = {
-                        if (isLosslessSelected) {
-                            android.widget.Toast.makeText(context, "Crossfade is not available with Lossless audio", android.widget.Toast.LENGTH_SHORT).show()
-                        } else if (!crossfadeEnabled) {
+                        if (!crossfadeEnabled) {
                             showCrossfadeBetaDialog = true
                         } else {
                             onCrossfadeEnabledChange(false)
                         }
                     }
                 ))
-                if (crossfadeEnabled && !isLosslessSelected) {
+                if (crossfadeEnabled) {
                     add(Material3SettingsItem(
     isHighlighted = (highlightKey == stringResource(R.string.crossfade_duration)),
                         icon = painterResource(R.drawable.timer),
@@ -596,6 +584,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.audio_normalization)),
                     icon = painterResource(R.drawable.volume_up),
                     title = { Text(stringResource(R.string.audio_normalization)) },
+                    description = { Text(stringResource(R.string.audio_normalization_desc)) },
                     trailingContent = {
                         Switch(
                             checked = audioNormalization,
@@ -1001,6 +990,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.stop_music_on_task_clear)),
                     icon = painterResource(R.drawable.clear_all),
                     title = { Text(stringResource(R.string.stop_music_on_task_clear)) },
+                    description = { Text(stringResource(R.string.stop_music_on_task_clear_desc)) },
                     trailingContent = {
                         Switch(
                             checked = stopMusicOnTaskClear,
@@ -1022,6 +1012,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.pause_music_when_media_is_muted)),
                     icon = painterResource(R.drawable.volume_off_pause),
                     title = { Text(stringResource(R.string.pause_music_when_media_is_muted)) },
+                    description = { Text(stringResource(R.string.pause_music_when_media_is_muted_desc)) },
                     trailingContent = {
                         Switch(
                             checked = pauseOnMute,
@@ -1043,6 +1034,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.resume_on_bluetooth_connect)),
                     icon = painterResource(R.drawable.bluetooth),
                     title = { Text(stringResource(R.string.resume_on_bluetooth_connect)) },
+                    description = { Text(stringResource(R.string.resume_on_bluetooth_connect_desc)) },
                     trailingContent = {
                         Switch(
                             checked = resumeOnBluetoothConnect,
@@ -1064,6 +1056,7 @@ highlightKey: String? = null) {
     isHighlighted = (highlightKey == stringResource(R.string.keep_screen_on_when_player_is_expanded)),
                     icon = painterResource(R.drawable.screenshot),
                     title = { Text(stringResource(R.string.keep_screen_on_when_player_is_expanded)) },
+                    description = { Text(stringResource(R.string.keep_screen_on_when_player_is_expanded_desc)) },
                     trailingContent = {
                         Switch(
                             checked = keepScreenOn,
