@@ -662,13 +662,35 @@ suspend fun checkForUpdate(
 ) {
     withContext(Dispatchers.IO) {
         try {
-            val url = URL("https://api.github.com/repos/rumman2004/Gaan/releases/latest")
-            val json = url.openStream().bufferedReader().use { it.readText() }
+            val isBetaEnabled = getBetaUpdatesSetting(context)
+            val releaseUrl = if (isBetaEnabled) {
+                URL("https://api.github.com/repos/rumman2004/Gaan/releases/tags/nightly")
+            } else {
+                URL("https://api.github.com/repos/rumman2004/Gaan/releases/latest")
+            }
+            
+            val json = releaseUrl.openStream().bufferedReader().use { it.readText() }
             val targetRelease = JSONObject(json)
             
             val currentVersion = BuildConfig.VERSION_NAME
             val targetTagName = targetRelease.getString("tag_name")
-            val shouldShow = isNewerVersion(targetTagName, currentVersion)
+            
+            var shouldShow = false
+            if (isBetaEnabled && targetTagName == "nightly") {
+                try {
+                    val commitUrl = URL("https://api.github.com/repos/rumman2004/Gaan/commits/nightly")
+                    val commitJson = commitUrl.openStream().bufferedReader().use { it.readText() }
+                    val nightlySha = JSONObject(commitJson).getString("sha")
+                    val currentSha = BuildConfig.GIT_HASH
+                    if (currentSha != "unknown" && nightlySha != currentSha && nightlySha.isNotBlank()) {
+                        shouldShow = true
+                    }
+                } catch (e: Exception) {
+                    shouldShow = isNewerVersion(targetTagName, currentVersion)
+                }
+            } else {
+                shouldShow = isNewerVersion(targetTagName, currentVersion)
+            }
 
             if (shouldShow) {
                 val tagWithPrefix = targetRelease.getString("tag_name")

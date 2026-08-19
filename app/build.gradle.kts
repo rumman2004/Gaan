@@ -1,6 +1,15 @@
 import java.util.Properties
 import java.net.URL
 
+fun getGitHash(): String {
+    return try {
+        val process = ProcessBuilder("git", "rev-parse", "HEAD").start()
+        process.inputStream.bufferedReader().use { it.readText().trim() }
+    } catch (e: Exception) {
+        "unknown"
+    }
+}
+
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
@@ -34,6 +43,8 @@ android {
         targetSdk = 36
         versionCode = 533
         versionName = "5.2.91"
+
+        buildConfigField("String", "GIT_HASH", "\"${getGitHash()}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
