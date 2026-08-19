@@ -1,5 +1,16 @@
 # Gaan Release Notes
 
+## Version 5.2.91
+
+### 🚀 What's New & Improved
+- **Smart Beta Updates**: Beta testers on the Nightly channel will now receive instant in-app update notifications whenever new code is pushed, without requiring manual app version updates!
+
+### 🛠️ Bug Fixes & Stability
+- **Playback Error Fixed**: Fixed the critical `IO_UNSPECIFIED (2000)` / `403` error when playing YouTube tracks by prioritizing the iOS client, bypassing recent restrictions.
+- **Hero Carousel Fix**: Resolved an issue where the Home Screen hero carousel was completely invisible on certain Android devices and screen sizes.
+
+---
+
 ## Version 5.2.90
 
 ### 🚀 What's New & Improved
