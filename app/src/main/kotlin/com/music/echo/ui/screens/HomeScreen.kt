@@ -49,7 +49,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
-import androidx.compose.material3.carousel.HorizontalCenteredHeroCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -1200,9 +1199,9 @@ fun HomeScreen(
 
                                 item(key = "quick_picks_list") {
                                     val distinctQuickPicks = quickPicks.distinctBy { it.id }
-                                    HorizontalCenteredHeroCarousel(
+                                    HorizontalMultiBrowseCarousel(
                                         state = rememberCarouselState { distinctQuickPicks.size },
-                                        maxItemWidth = 250.dp,
+                                        preferredItemWidth = 250.dp,
                                         itemSpacing = 8.dp,
                                         contentPadding = PaddingValues(horizontal = 16.dp),
                                         modifier = Modifier
@@ -1483,9 +1482,9 @@ fun HomeScreen(
 
                                 item(key = "account_playlists_list") {
                                     val distinctPlaylists = accountPlaylists.distinctBy { it.id }
-                                    HorizontalCenteredHeroCarousel(
+                                    HorizontalMultiBrowseCarousel(
                                         state = rememberCarouselState { distinctPlaylists.size },
-                                        maxItemWidth = 250.dp,
+                                        preferredItemWidth = 250.dp,
                                         itemSpacing = 8.dp,
                                         contentPadding = PaddingValues(horizontal = 16.dp),
                                         modifier = Modifier
