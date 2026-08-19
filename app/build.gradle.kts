@@ -32,8 +32,8 @@ android {
         applicationId = "com.gaan.music"
         minSdk = 26
         targetSdk = 36
-        versionCode = 532
-        versionName = "5.2.90"
+        versionCode = 533
+        versionName = "5.2.91"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
