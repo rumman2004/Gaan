@@ -1157,6 +1157,22 @@ interface DatabaseDao {
     @Query("SELECT * FROM event ORDER BY rowId DESC")
     fun events(): Flow<List<EventWithSong>>
 
+    data class MostPlayedSongStats(
+        val songId: String,
+        val playCount: Int,
+    )
+
+    @Query(
+        """
+        SELECT songId, COUNT(*) AS playCount
+        FROM event
+        GROUP BY songId
+        ORDER BY playCount DESC, MAX(timestamp) DESC
+        LIMIT 1
+        """
+    )
+    fun mostPlayedSongStats(): Flow<MostPlayedSongStats?>
+
     @Transaction
     @Query("SELECT * FROM event ORDER BY rowId ASC LIMIT 1")
     fun firstEvent(): Flow<EventWithSong?>
