@@ -111,7 +111,6 @@ import kotlinx.coroutines.delay
 import iad1tya.echo.music.applecanvas.AppleMusicCanvasProvider
 import iad1tya.echo.music.echomusiccanvas.echomusicCanvasProvider
 import java.util.Locale
-import kotlin.math.absoluteValue
 
 
 @Immutable
@@ -527,7 +526,7 @@ private fun PixelatedArtworkOverlay(
         val unit = 8.dp.toPx().coerceAtLeast(4f)
         val columns = (size.width / unit).toInt().coerceAtLeast(1)
         val rows = (size.height / unit).toInt().coerceAtLeast(1)
-        val seed = mediaId.hashCode().absoluteValue
+        val seed = mediaId.hashCode() and Int.MAX_VALUE
         val activeColumn = ((pulse * columns).toInt() + seed) % columns
 
         // A very light pixel grid gives the artwork a digital texture without
