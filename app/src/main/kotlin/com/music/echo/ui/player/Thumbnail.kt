@@ -13,6 +13,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
@@ -34,6 +35,7 @@ import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
@@ -57,6 +59,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -501,6 +505,105 @@ fun Thumbnail(
 
 
 @Composable
+private fun PixelatedArtworkOverlay(
+    accentColor: Color,
+    isPlaying: Boolean,
+    mediaId: String,
+    modifier: Modifier = Modifier,
+) {
+    val transition = rememberInfiniteTransition(label = "PixelArtworkOverlay")
+    val pulse by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Restart,
+        ),
+        label = "PixelPulse",
+    )
+
+    Canvas(modifier = modifier.fillMaxSize()) {
+        val unit = 8.dp.toPx().coerceAtLeast(4f)
+        val columns = (size.width / unit).toInt().coerceAtLeast(1)
+        val rows = (size.height / unit).toInt().coerceAtLeast(1)
+        val seed = mediaId.hashCode().absoluteValue
+        val activeColumn = ((pulse * columns).toInt() + seed) % columns
+
+        // A very light pixel grid gives the artwork a digital texture without
+        // obscuring album art or adding an expensive image-processing pass.
+        for (column in 1 until columns step 2) {
+            drawLine(
+                color = accentColor.copy(alpha = 0.035f),
+                start = Offset(column * unit, 0f),
+                end = Offset(column * unit, size.height),
+                strokeWidth = 1f,
+            )
+        }
+        for (row in 1 until rows step 2) {
+            drawLine(
+                color = accentColor.copy(alpha = 0.035f),
+                start = Offset(0f, row * unit),
+                end = Offset(size.width, row * unit),
+                strokeWidth = 1f,
+            )
+        }
+
+        // Sparse edge pixels create the characteristic Gaan/pixel silhouette.
+        for (column in 0 until columns) {
+            val topPattern = (column * 17 + seed) % 7
+            if (topPattern == 0 || (isPlaying && column == activeColumn)) {
+                drawRect(
+                    color = accentColor.copy(
+                        alpha = if (isPlaying && column == activeColumn) 0.34f else 0.16f
+                    ),
+                    topLeft = Offset(column * unit, 0f),
+                    size = androidx.compose.ui.geometry.Size(unit, unit),
+                )
+            }
+
+            val bottomPattern = (column * 29 + seed) % 9
+            if (bottomPattern == 0) {
+                drawRect(
+                    color = accentColor.copy(alpha = 0.13f),
+                    topLeft = Offset(column * unit, (rows - 1) * unit),
+                    size = androidx.compose.ui.geometry.Size(unit, unit),
+                )
+            }
+        }
+
+        for (row in 0 until rows) {
+            if ((row * 23 + seed) % 11 == 0) {
+                drawRect(
+                    color = accentColor.copy(alpha = 0.14f),
+                    topLeft = Offset(0f, row * unit),
+                    size = androidx.compose.ui.geometry.Size(unit, unit),
+                )
+            }
+            if ((row * 31 + seed) % 13 == 0) {
+                drawRect(
+                    color = accentColor.copy(alpha = 0.14f),
+                    topLeft = Offset((columns - 1) * unit, row * unit),
+                    size = androidx.compose.ui.geometry.Size(unit, unit),
+                )
+            }
+        }
+
+        // Four chunky corner pixels make the frame read as intentionally pixelated.
+        val corner = unit * 2.5f
+        drawRect(accentColor.copy(alpha = 0.32f), Offset(0f, 0f), androidx.compose.ui.geometry.Size(corner, unit))
+        drawRect(accentColor.copy(alpha = 0.22f), Offset(size.width - corner, 0f), androidx.compose.ui.geometry.Size(corner, unit))
+        drawRect(accentColor.copy(alpha = 0.22f), Offset(0f, size.height - unit), androidx.compose.ui.geometry.Size(corner, unit))
+        drawRect(accentColor.copy(alpha = 0.30f), Offset(size.width - corner, size.height - unit), androidx.compose.ui.geometry.Size(corner, unit))
+
+        drawRect(
+            color = accentColor.copy(alpha = 0.18f),
+            style = Stroke(width = unit * 0.55f),
+            size = size,
+        )
+    }
+}
+
+@Composable
 private fun ThumbnailHeader(
     queueTitle: String?,
     albumTitle: String?,
@@ -682,7 +785,7 @@ private fun ThumbnailItem(
                     if (rotatingThumbnail) {
                         MaterialShapes.Clover8Leaf.toShape()
                     } else {
-                        RoundedCornerShape(dimensions.cornerRadius)
+                        CutCornerShape(8.dp)
                     }
                 )
                 .graphicsLayer {
@@ -704,6 +807,13 @@ private fun ThumbnailItem(
                 )
             }
             
+            PixelatedArtworkOverlay(
+                accentColor = textBackgroundColor,
+                isPlaying = isPlaying && isCurrentItem,
+                mediaId = item.mediaId,
+                modifier = Modifier.fillMaxSize(),
+            )
+
             if (canvasThumbnailAnimation && item.mediaId == currentMediaId && !rotatingThumbnail && playerBackground != PlayerBackgroundStyle.APPLE_MUSIC) {
                 var canvasArtwork by remember(item.mediaId) { mutableStateOf<CanvasArtwork?>(null) }
                 var canvasFetchInFlight by remember(item.mediaId) { mutableStateOf(false) }
