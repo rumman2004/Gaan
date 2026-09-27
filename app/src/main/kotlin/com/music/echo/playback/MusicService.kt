@@ -4295,6 +4295,7 @@ class MusicService :
                 }
             }.awaitAll()
         }
+    }
 
     private fun checkAndSubmitListenBrainzFinished() {
         listenBrainzCurrentMediaId?.let { mediaId ->
