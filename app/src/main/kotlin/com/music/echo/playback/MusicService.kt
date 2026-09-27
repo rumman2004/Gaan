@@ -2923,7 +2923,15 @@ class MusicService :
      * DataSpec layer so cached and freshly resolved URLs get identical headers.
      */
     private fun withPlaybackHeaders(dataSpec: DataSpec, streamUrl: String): DataSpec {
-        val headers = PlayerClient.forStreamUrl(streamUrl).mediaHeaders()
+        val headers = PlayerClient.forStreamUrl(streamUrl).mediaHeaders().toMutableMap()
+
+        // Validation already sends the authenticated YouTube cookie, but the actual
+        // ExoPlayer media GET did not. That makes logged-in / age-gated streams pass
+        // validation and then fail with HTTP 403 when playback starts.
+        YouTube.cookie?.takeIf { it.isNotBlank() }?.let {
+            headers["Cookie"] = it
+        }
+
         return dataSpec.buildUpon()
             .setHttpRequestHeaders(headers)
             .build()
