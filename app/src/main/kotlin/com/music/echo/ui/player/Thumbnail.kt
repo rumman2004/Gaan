@@ -111,6 +111,7 @@ import kotlinx.coroutines.delay
 import iad1tya.echo.music.applecanvas.AppleMusicCanvasProvider
 import iad1tya.echo.music.echomusiccanvas.echomusicCanvasProvider
 import java.util.Locale
+import kotlin.math.absoluteValue
 
 
 @Immutable
