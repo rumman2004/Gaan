@@ -44,6 +44,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -91,6 +92,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.NavController
@@ -560,6 +562,141 @@ fun DailyDiscoverCard(
 
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+
+@Composable
+private fun MostPlayedHero(
+    song: Song,
+    playCount: Int,
+    onPlay: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    val shape = CutCornerShape(topStart = 6.dp, topEnd = 28.dp, bottomEnd = 6.dp, bottomStart = 28.dp)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .height(250.dp)
+            .clip(shape)
+            .combinedClickable(
+                onClick = onPlay,
+                onLongClick = onLongClick,
+            )
+    ) {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(song.thumbnailUrl?.resize(1080, 1080))
+                .memoryCachePolicy(CachePolicy.ENABLED)
+                .diskCachePolicy(CachePolicy.ENABLED)
+                .networkCachePolicy(CachePolicy.ENABLED)
+                .crossfade(true)
+                .build(),
+            contentDescription = song.song.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.Black.copy(alpha = 0.18f),
+                            Color.Black.copy(alpha = 0.32f),
+                            Color.Black.copy(alpha = 0.88f),
+                        )
+                    )
+                )
+        )
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            repeat(4) { index ->
+                Box(
+                    modifier = Modifier
+                        .size(if (index == 0) 8.dp else 5.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(
+                                alpha = if (index == 0) 0.9f else 0.55f
+                            )
+                        )
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .padding(18.dp)
+        ) {
+            Text(
+                text = "MOST PLAYED",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                letterSpacing = 1.5.sp,
+            )
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Text(
+                text = song.song.title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            Text(
+                text = song.artists.joinToString { it.name },
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.82f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = playCount.toString() + if (playCount == 1) " play" else " plays",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White.copy(alpha = 0.76f),
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                IconButton(
+                    onClick = onPlay,
+                    modifier = Modifier
+                        .size(52.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary,
+                            CircleShape
+                        )
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_widget_play),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(25.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun HomeScreen(
     navController: NavController,
@@ -570,6 +707,11 @@ fun HomeScreen(
     val bottomSheetPageState = LocalBottomSheetPageState.current
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
+
+    val mostPlayedStats by database.mostPlayedSongStats().collectAsState(initial = null)
+    val mostPlayedSong by remember(mostPlayedStats?.songId) {
+        database.song(mostPlayedStats?.songId)
+    }.collectAsState(initial = null)
     val haptic = LocalHapticFeedback.current
 
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsState()
@@ -952,6 +1094,37 @@ fun HomeScreen(
                 state = lazylistState,
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
             ) {
+                mostPlayedSong?.let { song ->
+                    val playCount = mostPlayedStats?.playCount ?: 0
+                    if (playCount > 0) {
+                        item(key = "most_played_hero") {
+                            MostPlayedHero(
+                                song = song,
+                                playCount = playCount,
+                                onPlay = {
+                                    if (song.id == mediaMetadata?.id) {
+                                        playerConnection.togglePlayPause()
+                                    } else {
+                                        playerConnection.playQueue(
+                                            YouTubeQueue.radio(song.toMediaMetadata())
+                                        )
+                                    }
+                                },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menuState.show {
+                                        SongMenu(
+                                            originalSong = song,
+                                            navController = navController,
+                                            onDismiss = menuState::dismiss
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+
                 item {
                     ChipsRow(
                         chips = homePage?.chips?.filter { 
