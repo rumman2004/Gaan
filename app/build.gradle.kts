@@ -41,8 +41,8 @@ android {
         applicationId = "com.gaan.music"
         minSdk = 26
         targetSdk = 36
-        versionCode = 533
-        versionName = "5.2.91"
+        versionCode = 535
+        versionName = "5.2.93"
 
         buildConfigField("String", "GIT_HASH", "\"${getGitHash()}\"")
 
