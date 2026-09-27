@@ -3005,7 +3005,14 @@ class MusicService :
         val winner = existing ?: candidate.also { it.start() }
 
         return try {
-            winner.await()
+            winner.await().also { result ->
+                result.getOrNull()?.let { data ->
+                    songUrlCache[key] = data.streamUrl to (
+                        System.currentTimeMillis() +
+                            (data.streamExpiresInSeconds * 1000L).coerceAtLeast(30_000L)
+                    )
+                }
+            }
         } finally {
             streamResolveJobs.remove(key, winner)
         }
