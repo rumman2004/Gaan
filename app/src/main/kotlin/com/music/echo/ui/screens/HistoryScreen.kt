@@ -3,8 +3,10 @@
 package iad1tya.echo.music.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -21,6 +24,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +48,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -199,6 +205,8 @@ fun HistoryScreen(
     val lazyListState = rememberLazyListState()
 
     Box(Modifier.fillMaxSize()) {
+        PixelatedHistoryBackdrop(modifier = Modifier.fillMaxSize())
+
         LazyColumn(
             state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
@@ -230,11 +238,9 @@ fun HistoryScreen(
             if (historySource == HistorySource.REMOTE && isLoggedIn) {
                 filteredRemoteContent?.forEach { section ->
                     stickyHeader {
-                        NavigationTitle(
+                        PixelHistorySectionHeader(
                             title = section.title,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.background)
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
 
@@ -246,7 +252,7 @@ fun HistoryScreen(
                             item = song,
                             isActive = song.id == mediaMetadata?.id,
                             isPlaying = isPlaying,
-                            shape = listItemShape(section.songs.indexOf(song), section.songs.size),
+                            shape = CutCornerShape(5.dp),
                             trailingContent = {
                                 IconButton(
                                     onClick = {
@@ -270,6 +276,12 @@ fun HistoryScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 2.dp)
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+                                    CutCornerShape(5.dp)
+                                )
                                 .combinedClickable(
                                     onClick = {
                                         if (song.id == mediaMetadata?.id) {
@@ -300,11 +312,9 @@ fun HistoryScreen(
             } else {
                 filteredEvents.forEach { (dateAgo, dateEvents) ->
                     stickyHeader {
-                        NavigationTitle(
+                        PixelHistorySectionHeader(
                             title = dateAgoToString(dateAgo),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surface)
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
 
@@ -325,7 +335,7 @@ fun HistoryScreen(
                             isActive = event.song.id == mediaMetadata?.id,
                             isPlaying = isPlaying,
                             showInLibraryIcon = true,
-                            shape = listItemShape(index, dateEvents.size),
+                            shape = CutCornerShape(5.dp),
                             trailingContent = {
                                 if (inSelectMode) {
                                     Checkbox(
@@ -528,4 +538,83 @@ fun HistoryScreen(
             }
         }
     )
+}
+
+
+@Composable
+private fun PixelatedHistoryBackdrop(modifier: Modifier = Modifier) {
+    val pixelColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.055f)
+    val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.035f)
+
+    Canvas(modifier = modifier) {
+        val cell = 24.dp.toPx()
+        val pixel = 2.dp.toPx()
+        val line = 1.dp.toPx()
+
+        var y = 0f
+        var row = 0
+        while (y < size.height) {
+            drawRect(
+                color = gridColor,
+                topLeft = Offset(0f, y),
+                size = Size(size.width, line)
+            )
+
+            var x = 0f
+            var column = 0
+            while (x < size.width) {
+                if ((row * 31 + column * 17) % 11 == 0) {
+                    drawRect(
+                        color = pixelColor,
+                        topLeft = Offset(x, y),
+                        size = Size(pixel, pixel)
+                    )
+                }
+                x += cell
+                column++
+            }
+            y += cell
+            row++
+        }
+    }
+}
+
+@Composable
+private fun PixelHistorySectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+) {
+    val shape = CutCornerShape(5.dp)
+
+    Box(
+        modifier = modifier
+            .padding(horizontal = 12.dp, vertical = 7.dp)
+            .background(
+                MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.94f),
+                shape
+            )
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f),
+                shape
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        androidx.compose.foundation.layout.Row(
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = title.uppercase(),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
 }
