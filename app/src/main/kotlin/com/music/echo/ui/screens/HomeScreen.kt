@@ -566,7 +566,7 @@ fun DailyDiscoverCard(
 @Composable
 private fun MostPlayedHero(
     song: Song,
-    playCount: Int,
+    playCount: Long,
     onPlay: () -> Unit,
     onLongClick: () -> Unit,
 ) {
@@ -1095,7 +1095,7 @@ fun HomeScreen(
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
             ) {
                 mostPlayedSong?.let { song ->
-                    val playCount = mostPlayedStats?.playCount ?: 0
+                    val playCount = mostPlayedStats?.playCount ?: 0L
                     if (playCount > 0) {
                         item(key = "most_played_hero") {
                             MostPlayedHero(
