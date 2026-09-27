@@ -43,6 +43,8 @@ import androidx.media3.common.Timeline
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
+import iad1tya.echo.music.utils.PlayerClient
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
@@ -2915,6 +2917,18 @@ class MusicService :
         }
     }
 
+    /**
+     * Applies the same YouTube client identity to the real media GET that was
+     * used when the stream URL was minted. This is deliberately done at the
+     * DataSpec layer so cached and freshly resolved URLs get identical headers.
+     */
+    private fun withPlaybackHeaders(dataSpec: DataSpec, streamUrl: String): DataSpec {
+        val headers = PlayerClient.forStreamUrl(streamUrl).mediaHeaders()
+        return dataSpec.buildUpon()
+            .setHttpRequestHeaders(headers)
+            .build()
+    }
+
     private fun createDataSourceFactory(): DataSource.Factory {
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
@@ -2958,7 +2972,7 @@ class MusicService :
                 ) {
                     songUrlCache["${mediaId}_${lockedQuality.name}"]?.takeIf { it.second > System.currentTimeMillis() }?.let {
                         scope.launch(Dispatchers.IO) { recoverSong(mediaId, isOfflinePlayback = true) }
-                        return@Factory dataSpec.withUri(it.first.toUri())
+                        return@Factory withPlaybackHeaders(dataSpec.withUri(it.first.toUri()), it.first)
                     }
                     // Fall through to fetch real URL since it's only partially downloaded
                 }
@@ -3080,7 +3094,10 @@ class MusicService :
                 songUrlCache["${mediaId}_${lockedQuality.name}"] =
                     streamUrl to System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
                 
-                return@Factory dataSpec.buildUpon().setKey(targetCacheKey).setUri(streamUrl.toUri()).build()
+                return@Factory withPlaybackHeaders(
+                    dataSpec.buildUpon().setKey(targetCacheKey).setUri(streamUrl.toUri()).build(),
+                    streamUrl
+                )
             }
         }
     }
