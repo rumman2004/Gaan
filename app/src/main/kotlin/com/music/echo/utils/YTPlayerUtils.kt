@@ -599,19 +599,27 @@ object YTPlayerUtils {
     private fun validateStatus(url: String): Boolean {
         Timber.tag(logTag).d("Validating stream URL status")
         try {
+            val client = PlayerClient.forStreamUrl(url)
             val requestBuilder = okhttp3.Request.Builder()
-                .head()
+                .get()
                 .url(url)
+                .header("Range", "bytes=0-1")
 
-            // Add authentication cookie for privately owned tracks
+            client.mediaHeaders().forEach { (name, value) ->
+                requestBuilder.header(name, value)
+            }
+
             YouTube.cookie?.let { cookie ->
-                requestBuilder.addHeader("Cookie", cookie)
-                println("[PLAYBACK_DEBUG] Added cookie to validation request")
+                requestBuilder.header("Cookie", cookie)
             }
 
             httpClient.newCall(requestBuilder.build()).execute().use { response ->
-                val isSuccessful = response.isSuccessful
-                Timber.tag(logTag).d("Stream URL validation result: ${if (isSuccessful) "Success" else "Failed"} (${response.code})")
+                val isSuccessful = response.isSuccessful && response.code != 403
+                Timber.tag(logTag).d(
+                    "Stream URL GET validation: client=" + client.clientName +
+                        ", result=" + (if (isSuccessful) "Success" else "Failed") +
+                        " (" + response.code + ")"
+                )
                 return isSuccessful
             }
         } catch (e: Exception) {
