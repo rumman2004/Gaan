@@ -1159,7 +1159,7 @@ interface DatabaseDao {
 
     data class MostPlayedSongStats(
         val songId: String,
-        val playCount: Int,
+        val playCount: Long,
     )
 
     @Query(
