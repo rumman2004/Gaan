@@ -184,10 +184,14 @@ import iad1tya.echo.music.widget.MusicWidgetReceiver
 import dagger.hilt.android.AndroidEntryPoint
 import iad1tya.echo.music.utils.isLocalMediaId
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -212,6 +216,7 @@ import timber.log.Timber
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.time.LocalDateTime
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import kotlin.coroutines.coroutineContext
 import kotlin.time.Duration.Companion.seconds
@@ -482,7 +487,15 @@ class MusicService :
     private var silenceSkipJob: Job? = null
 
     
-    private val songUrlCache = HashMap<String, Pair<String, Long>>()
+    // URL cache is shared by ExoPlayer's resolver and background preloading.
+    // ConcurrentHashMap prevents races when a preload completes while playback starts.
+    private val songUrlCache = ConcurrentHashMap<String, Pair<String, Long>>()
+
+    // Deduplicates stream-resolution work: the preloader and ExoPlayer can await the
+    // exact same in-flight YouTube player request instead of starting two expensive
+    // PoToken/player-response resolutions for the same song.
+    private val streamResolveJobs =
+        ConcurrentHashMap<String, Deferred<Result<YTPlayerUtils.PlaybackData>>>()
 
     
     private val bypassCacheForQualityChange = mutableSetOf<String>()
@@ -969,7 +982,14 @@ class MusicService :
                 if (dataSaver) false else preload
             }
             .distinctUntilChanged()
-            .collect(scope) { cachedPreloadEnabled = it }
+            .collect(scope) {
+                cachedPreloadEnabled = it
+                if (playerInitialized.value) {
+                    player.preloadConfiguration =
+                        if (it) ExoPlayer.PreloadConfiguration(5_000_000L)
+                        else ExoPlayer.PreloadConfiguration.DEFAULT
+                }
+            }
 
         dataStore.data
             .map { it[PreloadNextSongLimitKey] ?: 1 }
@@ -1123,6 +1143,14 @@ class MusicService :
             .setSeekForwardIncrementMs(5000)
             .setDeviceVolumeControlEnabled(true)
             .build()
+
+        // Media3 playlist preloading warms the next item with a small, bounded amount
+        // of actual media data. Our URL preloader above handles YouTube resolution first,
+        // while Media3 can then use the same resolved source without competing aggressively
+        // with the current track.
+        player.preloadConfiguration =
+            if (cachedPreloadEnabled) ExoPlayer.PreloadConfiguration(5_000_000L)
+            else ExoPlayer.PreloadConfiguration.DEFAULT
 
         playerSilenceProcessors[player] = silenceProcessor
         playerDuckProcessors[player] = duckProcessor
@@ -2937,6 +2965,52 @@ class MusicService :
             .build()
     }
 
+    /**
+     * Resolve a YouTube playback response once per song/quality and share the in-flight
+     * result between ExoPlayer and the background preloader.
+     *
+     * The lazy Deferred is important: if two callers race, the losing Deferred is never
+     * started, so deduplication does not merely discard the result after doing duplicate work.
+     */
+    private suspend fun resolvePlaybackData(
+        mediaId: String,
+        quality: iad1tya.echo.music.constants.AudioQuality,
+    ): Result<YTPlayerUtils.PlaybackData> {
+        val key = "${mediaId}_${quality.name}"
+        val candidate = scope.async(
+            Dispatchers.IO,
+            start = CoroutineStart.LAZY,
+        ) {
+            val dbSong = database.song(mediaId).firstOrNull()
+            val knownArtist = dbSong?.artists?.joinToString { it.name }?.replace(" - Topic", "")
+            val knownTitle = dbSong?.song?.title
+            val knownDuration = dbSong?.song?.duration?.let { if (it > 0) it * 1000L else null }
+
+            YTPlayerUtils.playerResponseForPlayback(
+                mediaId,
+                audioQuality = quality,
+                connectivityManager = connectivityManager,
+                context = this@MusicService,
+                knownArtist = knownArtist,
+                knownTitle = knownTitle,
+                knownDurationMs = knownDuration,
+                contentHints = com.music.innertube.strategy.ContentHints(
+                    isExplicit = dbSong?.song?.explicit,
+                    isUploaded = dbSong?.song?.isUploaded,
+                ),
+            )
+        }
+
+        val existing = streamResolveJobs.putIfAbsent(key, candidate)
+        val winner = existing ?: candidate.also { it.start() }
+
+        return try {
+            winner.await()
+        } finally {
+            streamResolveJobs.remove(key, winner)
+        }
+    }
+
     private fun createDataSourceFactory(): DataSource.Factory {
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
@@ -3004,24 +3078,7 @@ class MusicService :
 
             Timber.tag("MusicService").i("FETCHING STREAM: $mediaId | quality=$lockedQuality")
             val playbackData = runBlocking(Dispatchers.IO) {
-                val dbSong = database.song(mediaId).firstOrNull()
-                val knownArtist = dbSong?.artists?.joinToString { it.name }?.replace(" - Topic", "")
-                val knownTitle = dbSong?.song?.title
-                val knownDuration = dbSong?.song?.duration?.let { if (it > 0) it * 1000L else null }
-
-                YTPlayerUtils.playerResponseForPlayback(
-                    mediaId,
-                    audioQuality = lockedQuality,
-                    connectivityManager = connectivityManager,
-                    context = this@MusicService,
-                    knownArtist = knownArtist,
-                    knownTitle = knownTitle,
-                    knownDurationMs = knownDuration,
-                    contentHints = com.music.innertube.strategy.ContentHints(
-                        isExplicit = dbSong?.song?.explicit,
-                        isUploaded = dbSong?.song?.isUploaded
-                    )
-                )
+                resolvePlaybackData(mediaId, lockedQuality)
             }.getOrElse { throwable ->
                 when (throwable) {
                     is PlaybackException -> throw throwable
@@ -4174,58 +4231,63 @@ class MusicService :
 
         preloadJob?.cancel()
         preloadJob = scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            for (mediaId in upcomingMediaIds) {
-
-                val isFullyDownloaded = downloadCache.getCachedSpans(mediaId).isNotEmpty()
-                if (!mediaId.isLocalMediaId() && !songUrlCache.containsKey("${mediaId}_${audioQuality.name}") && !isFullyDownloaded) {
-                    Timber.tag(TAG).d("Preloading stream for $mediaId")
-                    kotlin.runCatching {
-                        val dbSong = database.song(mediaId).firstOrNull()
-                        val knownArtist = dbSong?.artists?.joinToString(separator = ", ") { artist -> artist.name }?.replace(" - Topic", "")
-                        
-                        val playbackData = iad1tya.echo.music.utils.YTPlayerUtils.playerResponseForPlayback(
-                            videoId = mediaId,
-                            audioQuality = audioQuality,
-                            connectivityManager = connectivityManager,
-                            context = this@MusicService,
-                            knownArtist = knownArtist,
-                            knownTitle = dbSong?.song?.title,
-                            knownDurationMs = dbSong?.song?.duration?.let { if (it > 0) it * 1000L else null }
-                        )
-
-                        playbackData.getOrNull()?.streamUrl?.let { streamUrl ->
-                            songUrlCache["${mediaId}_${audioQuality.name}"] = Pair(streamUrl, System.currentTimeMillis() + 1000 * 60 * 60)
-                            Timber.tag(TAG).d("Preloaded stream for $mediaId")
+            // Stream resolution and lyrics lookup are independent. With a small queue
+            // (normally 1-2 items), running them concurrently reduces the time before
+            // the next track is fully warm without creating a large bandwidth burst.
+            upcomingMediaIds.map { mediaId ->
+                async(Dispatchers.IO) {
+                    val isFullyDownloaded = downloadCache.getCachedSpans(mediaId).isNotEmpty()
+                    if (!mediaId.isLocalMediaId() &&
+                        !songUrlCache.containsKey("${mediaId}_${audioQuality.name}") &&
+                        !isFullyDownloaded
+                    ) {
+                        Timber.tag(TAG).d("Preloading stream for $mediaId")
+                        kotlin.runCatching {
+                            val playbackData = resolvePlaybackData(mediaId, audioQuality)
+                            playbackData.getOrNull()?.let { data ->
+                                val streamUrl = data.streamUrl
+                                // Use YouTube's real expiry instead of a hard-coded 1 hour.
+                                songUrlCache["${mediaId}_${audioQuality.name}"] =
+                                    streamUrl to (
+                                        System.currentTimeMillis() +
+                                            (data.streamExpiresInSeconds * 1000L)
+                                                .coerceAtLeast(30_000L)
+                                    )
+                                Timber.tag(TAG).d("Preloaded stream for $mediaId")
+                            }
+                        }.onFailure {
+                            Timber.tag(TAG).w(it, "Preload failed for $mediaId")
                         }
                     }
-                }
 
-                if (preloadLyrics) {
-                    val dbLyrics = database.lyrics(mediaId).firstOrNull()
-                    if (dbLyrics == null) {
-                        Timber.tag(TAG).d("Preloading lyrics for $mediaId")
-                        val dbSong = database.song(mediaId).firstOrNull()
-                        if (dbSong != null) {
-                            kotlin.runCatching {
-                                val metadata = iad1tya.echo.music.models.MediaMetadata(
-                                    id = dbSong.song.id,
-                                    title = dbSong.song.title,
-                                    artists = dbSong.artists.map { artist -> iad1tya.echo.music.models.MediaMetadata.Artist(artist.id, artist.name) },
-                                    duration = dbSong.song.duration,
-                                    thumbnailUrl = dbSong.thumbnailUrl
-                                )
-                                val lyricsResult = lyricsHelper.getLyrics(metadata)
-                                database.query {
-                                    upsert(iad1tya.echo.music.db.entities.LyricsEntity(id = mediaId, lyrics = lyricsResult.lyrics))
+                    if (preloadLyrics) {
+                        val dbLyrics = database.lyrics(mediaId).firstOrNull()
+                        if (dbLyrics == null) {
+                            Timber.tag(TAG).d("Preloading lyrics for $mediaId")
+                            val dbSong = database.song(mediaId).firstOrNull()
+                            if (dbSong != null) {
+                                kotlin.runCatching {
+                                    val metadata = iad1tya.echo.music.models.MediaMetadata(
+                                        id = dbSong.song.id,
+                                        title = dbSong.song.title,
+                                        artists = dbSong.artists.map { artist -> iad1tya.echo.music.models.MediaMetadata.Artist(artist.id, artist.name) },
+                                        duration = dbSong.song.duration,
+                                        thumbnailUrl = dbSong.thumbnailUrl
+                                    )
+                                    val lyricsResult = lyricsHelper.getLyrics(metadata)
+                                    database.query {
+                                        upsert(iad1tya.echo.music.db.entities.LyricsEntity(id = mediaId, lyrics = lyricsResult.lyrics))
+                                    }
+                                    Timber.tag(TAG).d("Preloaded lyrics for $mediaId")
+                                }.onFailure {
+                                    Timber.tag(TAG).w(it, "Lyrics preload failed for $mediaId")
                                 }
-                                Timber.tag(TAG).d("Preloaded lyrics for $mediaId")
                             }
                         }
                     }
                 }
-            }
+            }.awaitAll()
         }
-    }
 
     private fun checkAndSubmitListenBrainzFinished() {
         listenBrainzCurrentMediaId?.let { mediaId ->
