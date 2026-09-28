@@ -21,10 +21,9 @@ class ContentAwareFallbackStrategy {
 
     private companion object {
         val uploadedClients = listOf(
-            YouTubeClient.IOS,
-            YouTubeClient.TVHTML5,
             YouTubeClient.WEB_REMIX,
             YouTubeClient.WEB_CREATOR,
+            YouTubeClient.TVHTML5_SIMPLY,
         )
 
         val defaultClients = listOf(
@@ -42,16 +41,13 @@ class ContentAwareFallbackStrategy {
         )
 
         val kidsClients = listOf(
-            YouTubeClient.IOS,
-            YouTubeClient.TVHTML5,
-            YouTubeClient.WEB_REMIX,
-            YouTubeClient.TVHTML5_SIMPLY,
+            YouTubeClient.VISIONOS,
+            YouTubeClient.VISIONOS_0_1,
             YouTubeClient.WEB_CREATOR,
+            YouTubeClient.TVHTML5_SIMPLY,
         )
 
         val liveClients = listOf(
-            YouTubeClient.IOS,
-            YouTubeClient.TVHTML5,
             YouTubeClient.WEB_REMIX,
             YouTubeClient.WEB_CREATOR,
             YouTubeClient.TVHTML5_SIMPLY,
