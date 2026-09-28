@@ -2704,8 +2704,14 @@ class MusicService :
 
         
         songUrlCache.remove("${mediaId}_${audioQuality.name}")
-        YTPlayerUtils.markWebRemixFailed(mediaId)
-        Timber.tag(TAG).d("Cleared cached URL for $mediaId and marked WEB_REMIX failed")
+        val failedClient = currentStreamClient.value
+        if (failedClient.isNotBlank() && failedClient != "unknown") {
+            YTPlayerUtils.markStreamClientFailed(mediaId, failedClient)
+            Timber.tag(TAG).d("Cleared cached URL for $mediaId and marked stream client failed: $failedClient")
+        } else {
+            YTPlayerUtils.markWebRemixFailed(mediaId)
+            Timber.tag(TAG).d("Cleared cached URL for $mediaId and marked WEB_REMIX failed (client unknown)")
+        }
 
         
         try {
