@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.PlaybackException
+import androidx.media3.datasource.HttpDataSource
 import iad1tya.echo.music.R
 
 @Composable
@@ -42,18 +43,24 @@ fun PlaybackError(
     
     
     
+    val httpStatusCode = generateSequence<Throwable?>(error.cause) { it.cause }
+        .filterIsInstance<HttpDataSource.InvalidResponseCodeException>()
+        .firstOrNull()
+        ?.responseCode
+
     val isAgeRestricted = rawErrorMessage.contains("age", ignoreCase = true) ||
             rawErrorMessage.contains("Sign in to confirm your age", ignoreCase = true) ||
             rawErrorMessage.contains("LOGIN_REQUIRED", ignoreCase = true) ||
-            rawErrorMessage.contains("confirm your age", ignoreCase = true) ||
-            rawErrorMessage.contains("403", ignoreCase = true) ||
-            rawErrorMessage.contains("Response code: 403", ignoreCase = true) ||
-            error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
-    
-    val errorMessage = if (isAgeRestricted) {
-        "This track is unplayable or age-restricted on YouTube Music. We are working on fixing this issue."
-    } else {
-        rawErrorMessage
+            rawErrorMessage.contains("confirm your age", ignoreCase = true)
+
+    val errorMessage = when {
+        isAgeRestricted ->
+            "This track is age-restricted or requires YouTube account verification."
+        httpStatusCode != null ->
+            "YouTube rejected the stream request (HTTP $httpStatusCode). Retrying will refresh the stream."
+        error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ->
+            "The YouTube stream request was rejected. Retrying will refresh the stream."
+        else -> rawErrorMessage
     }
     
     Column(

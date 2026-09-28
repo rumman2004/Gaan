@@ -1,5 +1,17 @@
 # Gaan Release Notes
 
+## Version 5.2.93
+
+### 🚀 What's New & Improved
+- **Anime Pixel Home:** Added a dynamic anime-inspired pixel-art home greeting with time-aware greeting, clock, and date.
+- **Playback & Preload:** Improved playback stream resolution caching and upcoming-track preloading.
+- **Pixel Player UI:** Added lightweight pixel-art visual overlays while keeping original song artwork intact.
+
+### 🛠️ Bug Fixes & Stability
+- Improved Home screen visual consistency and playback responsiveness.
+
+---
+
 ## Version 5.2.91
 
 ### 🚀 What's New & Improved

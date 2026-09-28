@@ -38,7 +38,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -256,80 +255,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.geometry.Size
-
-@Composable
-private fun PixelatedPlayerOverlay(
-    accentColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    val transition = rememberInfiniteTransition(label = "PixelPlayerOverlay")
-    val pulse by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "PixelPlayerPulse",
-    )
-
-    Canvas(modifier = modifier) {
-        val unit = 12.dp.toPx().coerceAtLeast(6f)
-        val columns = (size.width / unit).toInt().coerceAtLeast(1)
-        val rows = (size.height / unit).toInt().coerceAtLeast(1)
-        val activeColumn = (pulse * columns).toInt().coerceAtMost(columns - 1)
-
-        // Keep the effect mostly at the edges so the artwork, lyrics and controls
-        // remain readable. This is deliberately a cheap Canvas overlay.
-        for (column in 0 until columns) {
-            if (column % 5 == 0) {
-                drawRect(
-                    color = accentColor.copy(alpha = 0.045f),
-                    topLeft = Offset(column * unit, 0f),
-                    size = Size(unit, unit),
-                )
-            }
-            if (column % 7 == 0) {
-                drawRect(
-                    color = accentColor.copy(alpha = 0.04f),
-                    topLeft = Offset(column * unit, size.height - unit),
-                    size = Size(unit, unit),
-                )
-            }
-        }
-
-        for (row in 0 until rows) {
-            if (row % 6 == 0) {
-                drawRect(
-                    color = accentColor.copy(alpha = 0.04f),
-                    topLeft = Offset(0f, row * unit),
-                    size = Size(unit, unit),
-                )
-            }
-            if (row % 8 == 0) {
-                drawRect(
-                    color = accentColor.copy(alpha = 0.04f),
-                    topLeft = Offset(size.width - unit, row * unit),
-                    size = Size(unit, unit),
-                )
-            }
-        }
-
-        // A single moving pixel keeps the screen alive without a heavy animation.
-        drawRect(
-            color = accentColor.copy(alpha = 0.13f),
-            topLeft = Offset(activeColumn * unit, 0f),
-            size = Size(unit, unit),
-        )
-
-        // Chunky corner clusters tie the player background to the pixel-art artwork.
-        val corner = unit * 2f
-        drawRect(accentColor.copy(alpha = 0.08f), Offset(0f, 0f), Size(corner, unit))
-        drawRect(accentColor.copy(alpha = 0.06f), Offset(size.width - corner, 0f), Size(corner, unit))
-        drawRect(accentColor.copy(alpha = 0.06f), Offset(0f, size.height - unit), Size(corner, unit))
-        drawRect(accentColor.copy(alpha = 0.08f), Offset(size.width - corner, size.height - unit), Size(corner, unit))
-    }
-}
 
 private data class WavyShape(
     val sides: Int,
@@ -1480,17 +1405,6 @@ fun BottomSheetPlayer(
                         
                     }
                 }
-
-                PixelatedPlayerOverlay(
-                    accentColor = if (playerBackground == PlayerBackgroundStyle.DEFAULT) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        TextBackgroundColor
-                    },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .alpha(backgroundAlpha),
-                )
             }
         },
         onDismiss = {

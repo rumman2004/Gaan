@@ -124,21 +124,6 @@ data class YouTubeClient(
             osVersion = "18.2.22C152",
         )
 
-        /** Previous visionOS identity kept as a second fallback. */
-        val VISIONOS_0_1 = YouTubeClient(
-            clientName = "VISIONOS",
-            clientVersion = "0.1",
-            clientId = "101",
-            userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
-            osName = "visionOS",
-            osVersion = "1.3.21O771",
-            deviceMake = "Apple",
-            deviceModel = "RealityDevice14,1",
-            friendlyName = "visionOS 0.1",
-            loginSupported = false,
-            useSignatureTimestamp = false
-        )
-
         val MOBILE = YouTubeClient(
             clientName = "ANDROID",
             clientVersion = "21.03.38",
@@ -260,14 +245,14 @@ data class YouTubeClient(
          */
         val VISIONOS = YouTubeClient(
             clientName = "VISIONOS",
-            clientVersion = "1.02",
+            clientVersion = "0.1",
             clientId = "101",
-            userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15",
+            userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
             osName = "visionOS",
-            osVersion = "26.5.23O471",
+            osVersion = "1.3.21O771",
             deviceMake = "Apple",
-            deviceModel = "RealityDevice17,1",
-            friendlyName = "visionOS 1.02",
+            deviceModel = "RealityDevice14,1",
+            friendlyName = "visionOS",
             loginSupported = false,
             useSignatureTimestamp = false
         )

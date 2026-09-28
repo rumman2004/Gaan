@@ -43,44 +43,9 @@ object YTPlayerUtils {
 
     // Track videoIds whose WEB_REMIX stream URL 403'd on the ExoPlayer GET, so the next resolution
     // falls through to the fallback clients instead of skipping HEAD validation and looping.
-    private const val STREAM_CLIENT_FAILURE_TTL_MS = 5 * 60 * 1000L
-
     private val webRemixFailedIds = java.util.Collections.newSetFromMap(
         java.util.concurrent.ConcurrentHashMap<String, Boolean>(),
     )
-
-    private val streamClientFailures = java.util.concurrent.ConcurrentHashMap<String, FailedStreamClients>()
-
-    private data class FailedStreamClients(
-        val clientNames: Set<String>,
-        val failedAtMs: Long,
-    )
-
-    fun markStreamClientFailed(videoId: String, clientName: String) {
-        if (clientName.isBlank() || clientName == "unknown") return
-        streamClientFailures.compute(videoId) { _, failures ->
-            FailedStreamClients(
-                (failures?.clientNames.orEmpty() + clientName),
-                System.currentTimeMillis(),
-            )
-        }
-        if (clientName == MAIN_CLIENT.clientName) markWebRemixFailed(videoId)
-        Timber.tag(TAG).w("Marking stream client failed for $videoId: $clientName")
-    }
-
-    fun clearStreamClientFailures() {
-        streamClientFailures.clear()
-        webRemixFailedIds.clear()
-    }
-
-    private fun failedStreamClients(videoId: String): Set<String> {
-        val failures = streamClientFailures[videoId] ?: return emptySet()
-        if (System.currentTimeMillis() - failures.failedAtMs >= STREAM_CLIENT_FAILURE_TTL_MS) {
-            streamClientFailures.remove(videoId, failures)
-            return emptySet()
-        }
-        return failures.clientNames
-    }
 
     fun markWebRemixFailed(videoId: String) {
         webRemixFailedIds.add(videoId)
@@ -244,9 +209,7 @@ object YTPlayerUtils {
                 ?: musicVideoType.contains("LIVE", ignoreCase = true).takeIf { it },
             isUploaded = isUploadedTrack,
         )
-        val failedClients = failedStreamClients(videoId)
         val streamClients = fallbackStrategy.resolveClients(effectiveHints)
-            .filter { it.clientName !in failedClients }
 
         var bestFallbackFormat: PlayerResponse.StreamingData.Format? = null
         var bestFallbackUrl: String? = null
@@ -285,10 +248,6 @@ object YTPlayerUtils {
             }
 
             if (client == MAIN_CLIENT) {
-                if (client.clientName in failedClients) {
-                    Timber.tag(logTag).d("Skipping previously failed client ${client.clientName} for $videoId")
-                    continue
-                }
                 streamPlayerResponse = mainPlayerResponse
                 Timber.tag(logTag).d("Reusing response from metadata client: ${client.clientName}")
             } else {
