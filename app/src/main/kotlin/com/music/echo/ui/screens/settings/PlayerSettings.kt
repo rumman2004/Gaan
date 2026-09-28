@@ -103,6 +103,11 @@ highlightKey: String? = null) {
         defaultValue = AudioQuality.OPUS
     )
 
+    val (pixelatedPlayer, onPixelatedPlayerChange) = rememberPreference(
+        iad1tya.echo.music.constants.PixelatedPlayerKey,
+        defaultValue = false
+    )
+
     val (crossfadeEnabled, onCrossfadeEnabledChange) = rememberPreference(
         CrossfadeEnabledKey,
         defaultValue = false
@@ -378,6 +383,20 @@ highlightKey: String? = null) {
                         )
                     },
                     onClick = { showAudioQualityDialog = true }
+                ))
+                
+                add(Material3SettingsItem(
+                    isHighlighted = (highlightKey == "pixelated_player"),
+                    icon = painterResource(R.drawable.palette),
+                    title = { Text("Pixelated Player Design") },
+                    description = { Text("Enable pixelated background and fonts on player") },
+                    trailingContent = {
+                        Switch(
+                            checked = pixelatedPlayer,
+                            onCheckedChange = { onPixelatedPlayerChange(it) }
+                        )
+                    },
+                    onClick = { onPixelatedPlayerChange(!pixelatedPlayer) }
                 ))
                 
                 add(Material3SettingsItem(

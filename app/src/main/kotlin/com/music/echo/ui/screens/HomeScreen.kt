@@ -4,12 +4,17 @@ import androidx.compose.foundation.horizontalScroll
 
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -556,7 +561,7 @@ fun DailyDiscoverCard(
                         text = stringResource(messageRes, "${dailyDiscover.seed.title} • ${dailyDiscover.seed.artists.joinToString(", ") { it.name }}"),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
-                        color = Color.White.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
@@ -566,46 +571,182 @@ fun DailyDiscoverCard(
     }
 }
 
+enum class PixelScene {
+    MORNING,
+    DAY,
+    EVENING,
+    NIGHT
+}
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun AnimePixelGreetingCard(
     userName: String,
 ) {
-    var now by remember { mutableStateOf(LocalDateTime.now()) }
+    var now by remember {
+        mutableStateOf(LocalDateTime.now())
+    }
 
+    /*
+     * Keep the clock synchronized with the phone.
+     * 30 seconds is enough for the UI while avoiding
+     * unnecessary recompositions every second.
+     */
     LaunchedEffect(Unit) {
         while (true) {
             now = LocalDateTime.now()
-            delay(30_000L)
+            kotlinx.coroutines.delay(30_000L)
         }
     }
 
     val hour = now.hour
-    val greeting = when (hour) {
-        in 5..11 -> "Good Morning"
-        in 12..16 -> "Good Afternoon"
-        in 17..20 -> "Good Evening"
-        else -> "Good Night"
+    val minute = now.minute
+
+    val scene = when (hour) {
+        in 5..11 -> PixelScene.MORNING
+        in 12..16 -> PixelScene.DAY
+        in 17..20 -> PixelScene.EVENING
+        else -> PixelScene.NIGHT
     }
 
-    val accent = when {
-        hour in 5..11 -> Color(0xFFFFC857)
-        hour in 12..16 -> Color(0xFF62D8FF)
-        hour in 17..20 -> Color(0xFFFF7CCF)
-        else -> Color(0xFFB88CFF)
+    val greeting = when (scene) {
+        PixelScene.MORNING -> "Good Morning"
+        PixelScene.DAY -> "Good Afternoon"
+        PixelScene.EVENING -> "Good Evening"
+        PixelScene.NIGHT -> "Good Night"
     }
 
-    val clockText = remember(now.minute, now.hour) {
-        now.format(DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()))
-    }
-    val dateText = remember(now.dayOfWeek, now.month, now.dayOfMonth) {
-        now.format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy", Locale.getDefault()))
+    /*
+     * ─────────────────────────────────────────
+     * TARGET SCENE COLORS
+     * ─────────────────────────────────────────
+     */
+    data class SceneColors(
+        val top: Color,
+        val middle: Color,
+        val bottom: Color,
+        val accent: Color,
+        val foreground: Color,
+        val secondary: Color,
+    )
+
+    val targetColors = when (scene) {
+        PixelScene.MORNING -> SceneColors(
+            top = Color(0xFF21133D),
+            middle = Color(0xFF613E67),
+            bottom = Color(0xFF171224),
+            accent = Color(0xFFFFC857),
+            foreground = Color.White,
+            secondary = Color.White.copy(alpha = 0.78f),
+        )
+        PixelScene.DAY -> SceneColors(
+            top = Color(0xFF5DB6D9),
+            middle = Color(0xFF2F789D),
+            bottom = Color(0xFF19334A),
+            accent = Color(0xFFFFD166),
+            foreground = Color.White,
+            secondary = Color.White.copy(alpha = 0.82f),
+        )
+        PixelScene.EVENING -> SceneColors(
+            top = Color(0xFF6D365F),
+            middle = Color(0xFF351D48),
+            bottom = Color(0xFF120C20),
+            accent = Color(0xFFFF7CCF),
+            foreground = Color.White,
+            secondary = Color.White.copy(alpha = 0.80f),
+        )
+        PixelScene.NIGHT -> SceneColors(
+            top = Color(0xFF080A18),
+            middle = Color(0xFF11142D),
+            bottom = Color(0xFF1B1030),
+            accent = Color(0xFFB88CFF),
+            foreground = Color.White,
+            secondary = Color.White.copy(alpha = 0.76f),
+        )
     }
 
-    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "HomePixelScene")
-    val scanOffset by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
+    /*
+     * ─────────────────────────────────────────
+     * SMOOTH SCENE COLOR TRANSITIONS
+     * ─────────────────────────────────────────
+     */
+    val skyTop by androidx.compose.animation.animateColorAsState(
+        targetValue = targetColors.top,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 4000,
+            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+        ),
+        label = "PixelSkyTop",
+    )
+
+    val skyMiddle by androidx.compose.animation.animateColorAsState(
+        targetValue = targetColors.middle,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 4000,
+            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+        ),
+        label = "PixelSkyMiddle",
+    )
+
+    val skyBottom by androidx.compose.animation.animateColorAsState(
+        targetValue = targetColors.bottom,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 4000,
+            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+        ),
+        label = "PixelSkyBottom",
+    )
+
+    val accent by androidx.compose.animation.animateColorAsState(
+        targetValue = targetColors.accent,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 3000,
+            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+        ),
+        label = "PixelAccent",
+    )
+
+    /*
+     * ─────────────────────────────────────────
+     * CELESTIAL OBJECT ANIMATION
+     * ─────────────────────────────────────────
+     */
+    val celestialAlpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = when (scene) {
+            PixelScene.MORNING -> 0.95f
+            PixelScene.DAY -> 1f
+            PixelScene.EVENING -> 0.85f
+            PixelScene.NIGHT -> 1f
+        },
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 2500),
+        label = "CelestialAlpha",
+    )
+
+    val celestialY by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = when (scene) {
+            PixelScene.MORNING -> 0.36f
+            PixelScene.DAY -> 0.22f
+            PixelScene.EVENING -> 0.48f
+            PixelScene.NIGHT -> 0.25f
+        },
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 4500,
+            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+        ),
+        label = "CelestialY",
+    )
+
+    /*
+     * ─────────────────────────────────────────
+     * INFINITE MICRO ANIMATIONS
+     * ─────────────────────────────────────────
+     */
+    val infiniteTransition =
+        androidx.compose.animation.core.rememberInfiniteTransition(label = "GaanPixelInfinite")
+
+    val scanOffset by infiniteTransition.animateFloat(
+        initialValue = -0.2f,
+        targetValue = 1.2f,
         animationSpec = androidx.compose.animation.core.infiniteRepeatable(
             animation = androidx.compose.animation.core.tween(
                 durationMillis = 4200,
@@ -613,8 +754,53 @@ private fun AnimePixelGreetingCard(
             ),
             repeatMode = androidx.compose.animation.core.RepeatMode.Restart,
         ),
-        label = "HomePixelScan",
+        label = "PixelScan",
     )
+
+    val starPulse by infiniteTransition.animateFloat(
+        initialValue = 0.30f,
+        targetValue = 0.95f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(
+                durationMillis = 1800,
+                easing = androidx.compose.animation.core.FastOutSlowInEasing,
+            ),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
+        ),
+        label = "StarPulse",
+    )
+
+    val celestialPulse by infiniteTransition.animateFloat(
+        initialValue = 0.82f,
+        targetValue = 1.0f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(
+                durationMillis = 2400,
+                easing = androidx.compose.animation.core.FastOutSlowInEasing,
+            ),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
+        ),
+        label = "CelestialPulse",
+    )
+
+    val starAlpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = when (scene) {
+            PixelScene.MORNING -> 0.05f
+            PixelScene.DAY -> 0f
+            PixelScene.EVENING -> 0.65f
+            PixelScene.NIGHT -> 1f
+        },
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 5000),
+        label = "StarSceneAlpha",
+    )
+
+    val clockText = remember(now.hour, now.minute) {
+        now.format(DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()))
+    }
+
+    val dateText = remember(now.dayOfWeek, now.month, now.dayOfMonth, now.year) {
+        now.format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy", Locale.getDefault()))
+    }
 
     val shape = CutCornerShape(
         topStart = 8.dp,
@@ -630,281 +816,299 @@ private fun AnimePixelGreetingCard(
             .height(238.dp)
             .clip(shape)
     ) {
-        // The artwork is intentionally generated with Compose Canvas instead of using
-        // album art. This keeps the song covers below completely original.
+
+        /*
+         * PIXEL ART BACKGROUND
+         */
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
-            val unit = 8.dp.toPx().coerceAtLeast(4f)
+            val unit = 7.dp.toPx().coerceAtLeast(4f)
 
+            // Animated sky
             drawRect(
                 brush = Brush.verticalGradient(
-                    listOf(
-                        Color(0xFF080A18),
-                        Color(0xFF11142D),
-                        Color(0xFF1B1030),
-                    )
+                    colors = listOf(skyTop, skyMiddle, skyBottom)
                 ),
                 size = size,
             )
 
-            // Pixel stars / atmosphere.
-            val stars = listOf(
-                0.08f to 0.16f, 0.18f to 0.28f, 0.31f to 0.12f,
-                0.43f to 0.22f, 0.57f to 0.10f, 0.68f to 0.26f,
-                0.82f to 0.14f, 0.91f to 0.30f
-            )
-            stars.forEachIndexed { index, (x, y) ->
-                val pulse = if ((index + (scanOffset * 4).toInt()) % 3 == 0) 0.85f else 0.38f
-                drawRect(
-                    color = Color.White.copy(alpha = pulse),
-                    topLeft = androidx.compose.ui.geometry.Offset(w * x, h * y),
-                    size = androidx.compose.ui.geometry.Size(unit, unit),
-                )
-            }
-
-            // Large sun/moon rendered as chunky pixels.
-            val celestialCenter = androidx.compose.ui.geometry.Offset(w * 0.76f, h * 0.27f)
-            val celestialColor = accent.copy(alpha = 0.95f)
-            drawCircle(
-                color = celestialColor.copy(alpha = 0.16f),
-                radius = unit * 8.5f,
-                center = celestialCenter,
-            )
-            drawCircle(
-                color = celestialColor,
-                radius = unit * 3.6f,
-                center = celestialCenter,
-            )
-            for (i in -2..2) {
-                drawRect(
-                    color = celestialColor.copy(alpha = 0.8f),
-                    topLeft = androidx.compose.ui.geometry.Offset(
-                        celestialCenter.x + i * unit * 2.2f - unit / 2f,
-                        celestialCenter.y - unit / 2f,
+            // Horizon glow
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colorStops = arrayOf(
+                        0f to Color.Transparent,
+                        0.45f to accent.copy(alpha = 0.07f),
+                        1f to Color.Transparent,
                     ),
-                    size = androidx.compose.ui.geometry.Size(unit, unit),
+                    startY = h * 0.42f,
+                    endY = h * 0.78f,
+                ),
+                size = size,
+            )
+
+            // Stars (fade in/out by scene)
+            val stars = listOf(
+                Triple(0.07f, 0.10f, 1.0f),
+                Triple(0.17f, 0.25f, 0.7f),
+                Triple(0.29f, 0.08f, 1.2f),
+                Triple(0.39f, 0.20f, 0.8f),
+                Triple(0.51f, 0.06f, 1.1f),
+                Triple(0.63f, 0.22f, 0.7f),
+                Triple(0.76f, 0.09f, 1.2f),
+                Triple(0.89f, 0.25f, 0.8f),
+            )
+
+            stars.forEachIndexed { index, (x, y, scale) ->
+                val individualPulse = if (index % 2 == 0) starPulse else starPulse * 0.72f
+                drawRect(
+                    color = Color.White.copy(alpha = starAlpha * individualPulse * scale),
+                    topLeft = androidx.compose.ui.geometry.Offset(w * x, h * y),
+                    size = androidx.compose.ui.geometry.Size(unit * scale, unit * scale),
                 )
             }
 
-            // Distant pixel city.
-            val buildingWidths = listOf(9, 14, 11, 18, 13, 8, 16, 12)
-            var x = 0f
-            buildingWidths.forEachIndexed { index, widthUnits ->
+            // Celestial object (sun or moon)
+            val celestialCenter = androidx.compose.ui.geometry.Offset(
+                x = w * 0.78f,
+                y = h * celestialY,
+            )
+
+            // Atmospheric glow
+            drawCircle(
+                color = accent.copy(alpha = 0.10f * celestialPulse * celestialAlpha),
+                radius = unit * 11f,
+                center = celestialCenter,
+            )
+            drawCircle(
+                color = accent.copy(alpha = 0.13f * celestialPulse * celestialAlpha),
+                radius = unit * 7.5f,
+                center = celestialCenter,
+            )
+
+            if (scene == PixelScene.NIGHT) {
+                // Crescent moon
+                drawCircle(
+                    color = accent.copy(alpha = celestialAlpha),
+                    radius = unit * 4.1f,
+                    center = celestialCenter,
+                )
+                drawCircle(
+                    color = skyMiddle,
+                    radius = unit * 3.45f,
+                    center = androidx.compose.ui.geometry.Offset(
+                        x = celestialCenter.x + unit * 1.8f,
+                        y = celestialCenter.y - unit * 1.0f,
+                    ),
+                )
+                for (i in -2..2) {
+                    drawRect(
+                        color = accent.copy(alpha = 0.72f),
+                        topLeft = androidx.compose.ui.geometry.Offset(
+                            celestialCenter.x + i * unit * 2.1f - unit / 2f,
+                            celestialCenter.y - unit / 2f,
+                        ),
+                        size = androidx.compose.ui.geometry.Size(unit, unit),
+                    )
+                }
+            } else {
+                // Sun
+                drawCircle(
+                    color = accent.copy(alpha = celestialAlpha),
+                    radius = unit * 3.8f,
+                    center = celestialCenter,
+                )
+                for (i in -2..2) {
+                    drawRect(
+                        color = accent.copy(alpha = 0.65f * celestialAlpha),
+                        topLeft = androidx.compose.ui.geometry.Offset(
+                            celestialCenter.x + i * unit * 2.2f - unit / 2f,
+                            celestialCenter.y - unit / 2f,
+                        ),
+                        size = androidx.compose.ui.geometry.Size(unit, unit),
+                    )
+                }
+            }
+
+            // Pixel city / horizon
+            val buildings = listOf(8, 12, 10, 16, 11, 8, 15, 12, 9, 14, 10)
+            var buildingX = 0f
+
+            buildings.forEachIndexed { index, widthUnits ->
                 val buildingWidth = widthUnits * unit
                 val buildingHeight = (3 + ((index * 7) % 7)) * unit
+                val buildingColor = if (scene == PixelScene.DAY || scene == PixelScene.MORNING) {
+                    Color(0xFF31556A).copy(alpha = 0.72f)
+                } else {
+                    Color(0xFF0A0D1B).copy(alpha = 0.92f)
+                }
+
                 drawRect(
-                    color = Color(0xFF11152A),
-                    topLeft = androidx.compose.ui.geometry.Offset(x, h * 0.69f - buildingHeight),
+                    color = buildingColor,
+                    topLeft = androidx.compose.ui.geometry.Offset(buildingX, h * 0.78f - buildingHeight),
                     size = androidx.compose.ui.geometry.Size(buildingWidth, buildingHeight),
                 )
-                for (row in 1..2) {
-                    for (column in 1 until widthUnits step 4) {
-                        if ((row + column + index) % 3 != 0) {
-                            drawRect(
-                                color = accent.copy(alpha = 0.24f),
-                                topLeft = androidx.compose.ui.geometry.Offset(
-                                    x + column * unit,
-                                    h * 0.69f - buildingHeight + row * unit * 2,
-                                ),
-                                size = androidx.compose.ui.geometry.Size(unit, unit),
-                            )
+
+                if (scene == PixelScene.EVENING || scene == PixelScene.NIGHT) {
+                    for (row in 1..3) {
+                        for (column in 1 until widthUnits step 4) {
+                            if ((row + column + index) % 3 != 0) {
+                                drawRect(
+                                    color = accent.copy(alpha = 0.20f),
+                                    topLeft = androidx.compose.ui.geometry.Offset(
+                                        buildingX + column * unit,
+                                        h * 0.78f - buildingHeight + row * unit * 2.2f,
+                                    ),
+                                    size = androidx.compose.ui.geometry.Size(unit, unit),
+                                )
+                            }
                         }
                     }
                 }
-                x += buildingWidth + unit
+
+                buildingX += buildingWidth + unit
             }
 
-            // Window frame.
-            val windowTop = h * 0.11f
-            val windowBottom = h * 0.86f
-            val windowLeft = w * 0.045f
-            val windowRight = w * 0.62f
+            // Ground
             drawRect(
-                color = Color(0xFF050713).copy(alpha = 0.92f),
-                topLeft = androidx.compose.ui.geometry.Offset(windowLeft, windowTop),
-                size = androidx.compose.ui.geometry.Size(windowRight - windowLeft, windowBottom - windowTop),
-            )
-            drawLine(
-                color = accent.copy(alpha = 0.55f),
-                start = androidx.compose.ui.geometry.Offset((windowLeft + windowRight) / 2f, windowTop),
-                end = androidx.compose.ui.geometry.Offset((windowLeft + windowRight) / 2f, windowBottom),
-                strokeWidth = unit * 0.65f,
-            )
-            drawLine(
-                color = accent.copy(alpha = 0.38f),
-                start = androidx.compose.ui.geometry.Offset(windowLeft, windowBottom * 0.62f),
-                end = androidx.compose.ui.geometry.Offset(windowRight, windowBottom * 0.62f),
-                strokeWidth = unit * 0.45f,
+                color = if (scene == PixelScene.DAY || scene == PixelScene.MORNING) {
+                    Color(0xFF294657)
+                } else {
+                    Color(0xFF070913)
+                },
+                topLeft = androidx.compose.ui.geometry.Offset(0f, h * 0.86f),
+                size = androidx.compose.ui.geometry.Size(w, h * 0.14f),
             )
 
-            // Anime-inspired seated silhouette — deliberately abstract and non-identifying.
-            val personX = w * 0.34f
-            val personY = h * 0.71f
-            drawCircle(
-                color = Color(0xFF05050D),
-                radius = unit * 3.4f,
-                center = androidx.compose.ui.geometry.Offset(personX, personY - unit * 6.2f),
-            )
+            // Horizon line
             drawRect(
-                color = Color(0xFF060712),
-                topLeft = androidx.compose.ui.geometry.Offset(personX - unit * 5.5f, personY - unit * 2.8f),
-                size = androidx.compose.ui.geometry.Size(unit * 11f, unit * 8.2f),
-            )
-            drawRect(
-                color = accent.copy(alpha = 0.16f),
-                topLeft = androidx.compose.ui.geometry.Offset(personX - unit * 3.3f, personY + unit * 1.3f),
-                size = androidx.compose.ui.geometry.Size(unit * 6.6f, unit * 1.2f),
+                color = accent.copy(alpha = 0.28f),
+                topLeft = androidx.compose.ui.geometry.Offset(0f, h * 0.72f),
+                size = androidx.compose.ui.geometry.Size(w, 2f),
             )
 
-            // Small cat silhouette beside the character.
-            val catX = w * 0.48f
-            val catY = h * 0.74f
-            drawCircle(
-                color = Color(0xFF070711),
-                radius = unit * 2.2f,
-                center = androidx.compose.ui.geometry.Offset(catX, catY),
-            )
+            // Animated pixel scan
             drawRect(
-                color = Color(0xFF070711),
-                topLeft = androidx.compose.ui.geometry.Offset(catX - unit * 2.8f, catY + unit),
-                size = androidx.compose.ui.geometry.Size(unit * 5.6f, unit * 4.4f),
-            )
-            drawRect(
-                color = accent.copy(alpha = 0.6f),
-                topLeft = androidx.compose.ui.geometry.Offset(catX - unit * 1.1f, catY - unit * 0.4f),
-                size = androidx.compose.ui.geometry.Size(unit, unit),
-            )
-            drawRect(
-                color = accent.copy(alpha = 0.6f),
-                topLeft = androidx.compose.ui.geometry.Offset(catX + unit * 0.5f, catY - unit * 0.4f),
-                size = androidx.compose.ui.geometry.Size(unit, unit),
+                color = accent.copy(alpha = 0.32f),
+                topLeft = androidx.compose.ui.geometry.Offset(
+                    w * scanOffset - unit * 8f,
+                    h - unit * 1.5f,
+                ),
+                size = androidx.compose.ui.geometry.Size(unit * 8f, unit * 1.5f),
             )
 
-            // Desk and foreground plants.
+            // Pixel border
             drawRect(
-                color = Color(0xFF080A15),
-                topLeft = androidx.compose.ui.geometry.Offset(0f, h * 0.82f),
-                size = androidx.compose.ui.geometry.Size(w, h * 0.18f),
-            )
-            for (i in 0..7) {
-                val plantX = w * (0.69f + i * 0.035f)
-                val plantY = h * (0.79f - (i % 3) * 0.018f)
-                drawLine(
-                    color = Color(0xFF4A8C72).copy(alpha = 0.8f),
-                    start = androidx.compose.ui.geometry.Offset(plantX, h * 0.91f),
-                    end = androidx.compose.ui.geometry.Offset(plantX, plantY),
-                    strokeWidth = unit * 0.55f,
-                    cap = StrokeCap.Round,
-                )
-                drawRect(
-                    color = Color(0xFF5CA57E).copy(alpha = 0.72f),
-                    topLeft = androidx.compose.ui.geometry.Offset(plantX - unit, plantY - unit),
-                    size = androidx.compose.ui.geometry.Size(unit * 2f, unit * 1.3f),
-                )
-            }
-
-            // Animated pixel scan near the bottom edge.
-            drawRect(
-                color = accent.copy(alpha = 0.22f),
-                topLeft = androidx.compose.ui.geometry.Offset(w * scanOffset, h - unit),
-                size = androidx.compose.ui.geometry.Size(unit * 5f, unit),
-            )
-
-            // Pixel border.
-            drawRect(
-                color = accent.copy(alpha = 0.55f),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = unit * 0.45f),
+                color = accent.copy(alpha = 0.48f),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f),
                 size = size,
             )
         }
 
+        // Left text contrast gradient
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
-                        listOf(
-                            Color.Black.copy(alpha = 0.16f),
-                            Color.Black.copy(alpha = 0.18f),
-                            Color.Black.copy(alpha = 0.62f),
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.58f),
+                            Color.Black.copy(alpha = 0.32f),
+                            Color.Transparent,
                         )
                     )
                 )
         )
 
+        // Content
         Column(
             modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .fillMaxWidth(0.52f)
-                .padding(end = 18.dp),
+                .align(Alignment.CenterStart)
+                .fillMaxWidth(0.65f)
+                .padding(start = 18.dp, end = 8.dp),
             horizontalAlignment = Alignment.Start,
         ) {
-            Text(
-                text = greeting,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = userName,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = accent,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
 
-            Spacer(Modifier.height(6.dp))
+            // Animated greeting cross-fade on scene change
+            androidx.compose.animation.AnimatedContent(
+                targetState = greeting,
+                transitionSpec = {
+                    androidx.compose.animation.fadeIn(
+                        animationSpec = androidx.compose.animation.core.tween(700)
+                    ) togetherWith androidx.compose.animation.fadeOut(
+                        animationSpec = androidx.compose.animation.core.tween(300)
+                    )
+                },
+                label = "GreetingTransition",
+            ) { currentGreeting ->
+                Text(
+                    text = currentGreeting,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = targetColors.foreground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
 
             Text(
                 text = "Let the music set the mood.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.72f),
+                style = MaterialTheme.typography.bodySmall,
+                color = targetColors.secondary,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(13.dp))
 
+            // Clock chip
             Box(
                 modifier = Modifier
                     .clip(CutCornerShape(6.dp))
-                    .background(Color.Black.copy(alpha = 0.42f))
-                    .padding(horizontal = 12.dp, vertical = 9.dp)
+                    .background(Color.Black.copy(alpha = 0.48f))
+                    .border(
+                        width = 1.dp,
+                        color = accent.copy(alpha = 0.50f),
+                        shape = CutCornerShape(6.dp),
+                    )
+                    .padding(horizontal = 10.dp, vertical = 8.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(9.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = when {
-                            hour in 5..11 -> "☀"
-                            hour in 12..16 -> "◈"
-                            hour in 17..20 -> "✦"
-                            else -> "☾"
+                        text = when (scene) {
+                            PixelScene.MORNING -> "☀"
+                            PixelScene.DAY -> "◈"
+                            PixelScene.EVENING -> "✦"
+                            PixelScene.NIGHT -> "☾"
                         },
                         color = accent,
                         style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
                     )
+
                     Column {
                         Text(
                             text = clockText,
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
+                            maxLines = 1,
                         )
                         Text(
                             text = dateText,
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.58f),
+                            color = Color.White.copy(alpha = 0.68f),
+                            maxLines = 1,
                         )
                     }
                 }
             }
         }
 
+        // Pixel indicator dots
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -923,6 +1127,171 @@ private fun AnimePixelGreetingCard(
         }
     }
 }
+// ─────────────────────────────────────────────────────────────────────────
+// DISCOVERY SECTION HELPERS
+// ─────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun HomeSectionHeader(
+    title: String,
+    onSeeAll: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.weight(1f),
+        )
+        if (onSeeAll != null) {
+            Text(
+                text = "See all",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .combinedClickable(onClick = onSeeAll)
+                    .padding(start = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactMusicCard(
+    thumbnailUrl: String?,
+    title: String,
+    subtitle: String,
+    isActive: Boolean,
+    isPlaying: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val cardShape = CutCornerShape(topStart = 4.dp, topEnd = 14.dp, bottomEnd = 4.dp, bottomStart = 14.dp)
+    Column(
+        modifier = modifier
+            .width(148.dp)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(148.dp)
+                .clip(cardShape)
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(thumbnailUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            // Gradient for text readability
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f))
+                        )
+                    )
+            )
+            if (isActive && isPlaying) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .size(22.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.volume_up),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(12.dp),
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(5.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun CompactAlbumCard(
+    thumbnailUrl: String?,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val cardShape = CutCornerShape(topStart = 4.dp, topEnd = 14.dp, bottomEnd = 4.dp, bottomStart = 14.dp)
+    Column(
+        modifier = modifier
+            .width(148.dp)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(148.dp)
+                .clip(cardShape)
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(thumbnailUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        Spacer(modifier = Modifier.height(5.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 
@@ -1032,7 +1401,7 @@ private fun MostPlayedHero(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    text = playCount.toString() + if (playCount == 1) " play" else " plays",
+                    text = playCount.toString() + if (playCount == 1L) " play" else " plays",
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White.copy(alpha = 0.76f),
                 )
@@ -1095,6 +1464,24 @@ fun HomeScreen(
     val allYtItems by viewModel.allYtItems.collectAsState()
     val speedDialItems by viewModel.speedDialItems.collectAsState()
     val selectedChip by viewModel.selectedChip.collectAsState()
+
+    // Derived discovery data
+    val recentEvents by database.events().collectAsState(initial = emptyList())
+    val recentlyPlayedSongs = remember(recentEvents) {
+        recentEvents
+            .map { it.song }
+            .distinctBy { it.id }
+            .take(12)
+    }
+    val mostPlayedCompact = remember(quickPicks) {
+        quickPicks?.distinctBy { it.id }?.take(10) ?: emptyList()
+    }
+    val newReleaseAlbums = remember(explorePage) {
+        explorePage?.newReleaseAlbums?.distinctBy { it.id }?.take(12) ?: emptyList()
+    }
+    val discoverSongs = remember(dailyDiscover) {
+        dailyDiscover?.map { it.recommendation }?.distinctBy { it.id }?.take(10) ?: emptyList()
+    }
 
     val isLoading: Boolean by viewModel.isLoading.collectAsState()
     val isMoodAndGenresLoading = isLoading && explorePage?.moodAndGenres == null
@@ -1437,6 +1824,7 @@ fun HomeScreen(
             val horizontalLazyGridItemWidthFactor = if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
             val horizontalLazyGridItemWidth = maxWidth * horizontalLazyGridItemWidthFactor
             val quickPicksSnapLayoutInfoProvider = remember(quickPicksLazyGridState) {
+                @OptIn(ExperimentalFoundationApi::class)
                 SnapLayoutInfoProvider(
                     lazyGridState = quickPicksLazyGridState,
                     positionInLayout = { layoutSize, itemSize ->
@@ -1445,6 +1833,7 @@ fun HomeScreen(
                 )
             }
             val forgottenFavoritesSnapLayoutInfoProvider = remember(forgottenFavoritesLazyGridState) {
+                @OptIn(ExperimentalFoundationApi::class)
                 SnapLayoutInfoProvider(
                     lazyGridState = forgottenFavoritesLazyGridState,
                     positionInLayout = { layoutSize, itemSize ->
@@ -2434,6 +2823,215 @@ fun HomeScreen(
 
                         }
                     }
+                }
+
+                // ── RECENTLY PLAYED ──────────────────────────────────────────────────
+                if (recentlyPlayedSongs.isNotEmpty()) {
+                    item(key = "recently_played_header") {
+                        HomeSectionHeader(
+                            title = "Recently Played",
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
+                    item(key = "recently_played_list") {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.animateItem(),
+                        ) {
+                            items(
+                                items = recentlyPlayedSongs,
+                                key = { "rp_${it.id}" },
+                            ) { song ->
+                                CompactMusicCard(
+                                    thumbnailUrl = song.thumbnailUrl,
+                                    title = song.title,
+                                    subtitle = song.artists.joinToString { it.name },
+                                    isActive = song.id == mediaMetadata?.id,
+                                    isPlaying = isPlaying,
+                                    onClick = {
+                                        if (song.id == mediaMetadata?.id) {
+                                            playerConnection.togglePlayPause()
+                                        } else {
+                                            playerConnection.playQueue(
+                                                YouTubeQueue.radio(song.toMediaMetadata())
+                                            )
+                                        }
+                                    },
+                                    onLongClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        menuState.show {
+                                            SongMenu(
+                                                originalSong = song,
+                                                navController = navController,
+                                                onDismiss = menuState::dismiss,
+                                            )
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    item(key = "recently_played_spacer") { Spacer(Modifier.height(8.dp)) }
+                }
+
+                // ── MOST PLAYED (COMPACT ROW) ─────────────────────────────────────────
+                if (mostPlayedCompact.isNotEmpty()) {
+                    item(key = "most_played_compact_header") {
+                        HomeSectionHeader(
+                            title = "Most Played",
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
+                    item(key = "most_played_compact_list") {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.animateItem(),
+                        ) {
+                            items(
+                                items = mostPlayedCompact,
+                                key = { "mp_${it.id}" },
+                            ) { song ->
+                                CompactMusicCard(
+                                    thumbnailUrl = song.thumbnailUrl,
+                                    title = song.title,
+                                    subtitle = song.artists.joinToString { it.name },
+                                    isActive = song.id == mediaMetadata?.id,
+                                    isPlaying = isPlaying,
+                                    onClick = {
+                                        if (song.id == mediaMetadata?.id) {
+                                            playerConnection.togglePlayPause()
+                                        } else {
+                                            playerConnection.playQueue(
+                                                YouTubeQueue.radio(song.toMediaMetadata())
+                                            )
+                                        }
+                                    },
+                                    onLongClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        menuState.show {
+                                            SongMenu(
+                                                originalSong = song,
+                                                navController = navController,
+                                                onDismiss = menuState::dismiss,
+                                            )
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    item(key = "most_played_compact_spacer") { Spacer(Modifier.height(8.dp)) }
+                }
+
+                // ── NEW RELEASES ──────────────────────────────────────────────────────
+                if (newReleaseAlbums.isNotEmpty()) {
+                    item(key = "new_releases_header") {
+                        HomeSectionHeader(
+                            title = "New Releases",
+                            onSeeAll = { navController.navigate("new_release") },
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
+                    item(key = "new_releases_list") {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.animateItem(),
+                        ) {
+                            items(
+                                items = newReleaseAlbums,
+                                key = { "nr_${it.id}" },
+                            ) { album ->
+                                CompactAlbumCard(
+                                    thumbnailUrl = album.thumbnail,
+                                    title = album.title,
+                                    subtitle = album.artists?.joinToString(", ") { it.name } ?: "",
+                                    onClick = { navController.navigate("album/${album.id}") },
+                                    onLongClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        menuState.show {
+                                            YouTubeAlbumMenu(
+                                                albumItem = album,
+                                                navController = navController,
+                                                onDismiss = menuState::dismiss,
+                                            )
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    item(key = "new_releases_spacer") { Spacer(Modifier.height(8.dp)) }
+                }
+
+                // ── DISCOVER MORE (Daily Discover as compact row) ─────────────────────
+                if (discoverSongs.isNotEmpty()) {
+                    item(key = "discover_more_header") {
+                        HomeSectionHeader(
+                            title = "Discover More",
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
+                    item(key = "discover_more_list") {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.animateItem(),
+                        ) {
+                            items(
+                                items = discoverSongs,
+                                key = { "dm_${it.id}" },
+                            ) { ytItem ->
+                                when (ytItem) {
+                                    is SongItem -> CompactMusicCard(
+                                        thumbnailUrl = ytItem.thumbnail,
+                                        title = ytItem.title,
+                                        subtitle = ytItem.artists.joinToString(", ") { it.name },
+                                        isActive = ytItem.id == mediaMetadata?.id,
+                                        isPlaying = isPlaying,
+                                        onClick = {
+                                            playerConnection.playQueue(
+                                                YouTubeQueue(
+                                                    ytItem.endpoint ?: WatchEndpoint(videoId = ytItem.id),
+                                                    ytItem.toMediaMetadata()
+                                                )
+                                            )
+                                        },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            menuState.show {
+                                                YouTubeSongMenu(
+                                                    song = ytItem,
+                                                    navController = navController,
+                                                    onDismiss = menuState::dismiss,
+                                                )
+                                            }
+                                        },
+                                    )
+                                    is AlbumItem -> CompactAlbumCard(
+                                        thumbnailUrl = ytItem.thumbnail,
+                                        title = ytItem.title,
+                                        subtitle = ytItem.artists?.joinToString(", ") { it.name } ?: "",
+                                        onClick = { navController.navigate("album/${ytItem.id}") },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            menuState.show {
+                                                YouTubeAlbumMenu(
+                                                    albumItem = ytItem,
+                                                    navController = navController,
+                                                    onDismiss = menuState::dismiss,
+                                                )
+                                            }
+                                        },
+                                    )
+                                    else -> {}
+                                }
+                            }
+                        }
+                    }
+                    item(key = "discover_more_spacer") { Spacer(Modifier.height(8.dp)) }
                 }
 
                 if (isLoading || homePage?.continuation != null && homePage?.sections?.isNotEmpty() == true) {

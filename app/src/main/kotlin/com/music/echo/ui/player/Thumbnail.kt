@@ -504,101 +504,288 @@ fun Thumbnail(
 }
 
 
+private class PixelCornerShape(
+    private val step: Float = 0.035f
+) : androidx.compose.ui.graphics.Shape {
+
+    override fun createOutline(
+        size: androidx.compose.ui.geometry.Size,
+        layoutDirection: androidx.compose.ui.unit.LayoutDirection,
+        density: androidx.compose.ui.unit.Density
+    ): androidx.compose.ui.graphics.Outline {
+
+        val x = size.width * step
+        val y = size.height * step
+
+        val path = androidx.compose.ui.graphics.Path().apply {
+
+            moveTo(x, 0f)
+
+            lineTo(size.width - x, 0f)
+
+            lineTo(size.width - x, y * 0.35f)
+            lineTo(size.width - y * 0.35f, y * 0.35f)
+
+            lineTo(size.width - y * 0.35f, y)
+
+            lineTo(size.width, y)
+
+            lineTo(size.width, size.height - y)
+
+            lineTo(size.width - y, size.height - y)
+
+            lineTo(size.width - y, size.height)
+
+            lineTo(x, size.height)
+
+            lineTo(x, size.height - y)
+
+            lineTo(y * 0.35f, size.height - y)
+
+            lineTo(y * 0.35f, size.height - y * 0.35f)
+
+            lineTo(0f, size.height - y * 0.35f)
+
+            lineTo(0f, y)
+
+            lineTo(y, y)
+
+            lineTo(y, y * 0.35f)
+
+            lineTo(x, y * 0.35f)
+
+            close()
+        }
+
+        return androidx.compose.ui.graphics.Outline.Generic(path)
+    }
+}
+
 @Composable
-private fun PixelatedArtworkOverlay(
+private fun PixelArtworkParticles(
     accentColor: Color,
-    isPlaying: Boolean,
-    mediaId: String,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
-    val transition = rememberInfiniteTransition(label = "PixelArtworkOverlay")
-    val pulse by transition.animateFloat(
+
+    val transition = rememberInfiniteTransition(
+        label = "ArtworkPixels"
+    )
+
+    val offset by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = LinearEasing),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Restart,
+            animation = tween(
+                2800,
+                easing = LinearEasing
+            ),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
-        label = "PixelPulse",
+        label = "ArtworkPixelMovement"
     )
 
-    Canvas(modifier = modifier.fillMaxSize()) {
-        val unit = 8.dp.toPx().coerceAtLeast(4f)
-        val columns = (size.width / unit).toInt().coerceAtLeast(1)
-        val rows = (size.height / unit).toInt().coerceAtLeast(1)
-        val seed = mediaId.hashCode() and Int.MAX_VALUE
-        val activeColumn = ((pulse * columns).toInt() + seed) % columns
+    Canvas(modifier = modifier) {
 
-        // A very light pixel grid gives the artwork a digital texture without
-        // obscuring album art or adding an expensive image-processing pass.
-        for (column in 1 until columns step 2) {
-            drawLine(
-                color = accentColor.copy(alpha = 0.035f),
-                start = Offset(column * unit, 0f),
-                end = Offset(column * unit, size.height),
-                strokeWidth = 1f,
+        val pixel = 7.dp.toPx()
+
+        val particles = listOf(
+            Offset(0.08f, 0.20f),
+            Offset(0.13f, 0.27f),
+            Offset(0.18f, 0.14f),
+
+            Offset(0.84f, 0.17f),
+            Offset(0.91f, 0.25f),
+            Offset(0.87f, 0.31f),
+
+            Offset(0.05f, 0.65f),
+            Offset(0.11f, 0.71f),
+
+            Offset(0.91f, 0.60f),
+            Offset(0.84f, 0.68f),
+
+            Offset(0.16f, 0.82f),
+            Offset(0.87f, 0.80f)
+        )
+
+        particles.forEachIndexed { index, point ->
+
+            val movement =
+                if (index % 2 == 0) {
+                    offset * 8.dp.toPx()
+                } else {
+                    -offset * 6.dp.toPx()
+                }
+
+            drawRect(
+                color = accentColor.copy(
+                    alpha = if (index % 3 == 0) {
+                        0.25f
+                    } else {
+                        0.12f
+                    }
+                ),
+                topLeft = Offset(
+                    size.width * point.x + movement,
+                    size.height * point.y
+                ),
+                size = androidx.compose.ui.geometry.Size(
+                    pixel,
+                    pixel
+                )
             )
         }
-        for (row in 1 until rows step 2) {
-            drawLine(
-                color = accentColor.copy(alpha = 0.035f),
-                start = Offset(0f, row * unit),
-                end = Offset(size.width, row * unit),
-                strokeWidth = 1f,
-            )
-        }
+    }
+}
 
-        // Sparse edge pixels create the characteristic Gaan/pixel silhouette.
-        for (column in 0 until columns) {
-            val topPattern = (column * 17 + seed) % 7
-            if (topPattern == 0 || (isPlaying && column == activeColumn)) {
-                drawRect(
-                    color = accentColor.copy(
-                        alpha = if (isPlaying && column == activeColumn) 0.34f else 0.16f
-                    ),
-                    topLeft = Offset(column * unit, 0f),
-                    size = androidx.compose.ui.geometry.Size(unit, unit),
-                )
-            }
+@Composable
+private fun PixelatedArtworkOverlay(
+    modifier: Modifier = Modifier,
+    accentColor: Color,
+) {
+    Canvas(modifier = modifier) {
 
-            val bottomPattern = (column * 29 + seed) % 9
-            if (bottomPattern == 0) {
-                drawRect(
-                    color = accentColor.copy(alpha = 0.13f),
-                    topLeft = Offset(column * unit, (rows - 1) * unit),
-                    size = androidx.compose.ui.geometry.Size(unit, unit),
-                )
-            }
-        }
+        val unit = size.width / 32f
 
-        for (row in 0 until rows) {
-            if ((row * 23 + seed) % 11 == 0) {
-                drawRect(
-                    color = accentColor.copy(alpha = 0.14f),
-                    topLeft = Offset(0f, row * unit),
-                    size = androidx.compose.ui.geometry.Size(unit, unit),
-                )
-            }
-            if ((row * 31 + seed) % 13 == 0) {
-                drawRect(
-                    color = accentColor.copy(alpha = 0.14f),
-                    topLeft = Offset((columns - 1) * unit, row * unit),
-                    size = androidx.compose.ui.geometry.Size(unit, unit),
-                )
-            }
-        }
+        /*
+         * ---------------------------------------------------------
+         * SUBTLE 3D BEVEL
+         * ---------------------------------------------------------
+         */
 
-        // Four chunky corner pixels make the frame read as intentionally pixelated.
-        val corner = unit * 2.5f
-        drawRect(accentColor.copy(alpha = 0.32f), Offset(0f, 0f), androidx.compose.ui.geometry.Size(corner, unit))
-        drawRect(accentColor.copy(alpha = 0.22f), Offset(size.width - corner, 0f), androidx.compose.ui.geometry.Size(corner, unit))
-        drawRect(accentColor.copy(alpha = 0.22f), Offset(0f, size.height - unit), androidx.compose.ui.geometry.Size(corner, unit))
-        drawRect(accentColor.copy(alpha = 0.30f), Offset(size.width - corner, size.height - unit), androidx.compose.ui.geometry.Size(corner, unit))
+        // Top highlight
+        drawRect(
+            color = Color.White.copy(alpha = 0.22f),
+            topLeft = Offset.Zero,
+            size = androidx.compose.ui.geometry.Size(size.width, unit)
+        )
+
+        // Left highlight
+        drawRect(
+            color = Color.White.copy(alpha = 0.18f),
+            topLeft = Offset.Zero,
+            size = androidx.compose.ui.geometry.Size(unit, size.height)
+        )
+
+        // Bottom shadow
+        drawRect(
+            color = Color.Black.copy(alpha = 0.42f),
+            topLeft = Offset(
+                0f,
+                size.height - unit
+            ),
+            size = androidx.compose.ui.geometry.Size(size.width, unit)
+        )
+
+        // Right shadow
+        drawRect(
+            color = Color.Black.copy(alpha = 0.40f),
+            topLeft = Offset(
+                size.width - unit,
+                0f
+            ),
+            size = androidx.compose.ui.geometry.Size(unit, size.height)
+        )
+
+        /*
+         * ---------------------------------------------------------
+         * PIXEL CORNER ACCENTS
+         * ---------------------------------------------------------
+         */
+
+        val pixel = unit * 1.5f
+
+        // Top-left
+        drawRect(
+            color = accentColor.copy(alpha = 0.65f),
+            topLeft = Offset(0f, 0f),
+            size = androidx.compose.ui.geometry.Size(pixel * 2f, pixel)
+        )
 
         drawRect(
-            color = accentColor.copy(alpha = 0.18f),
-            style = Stroke(width = unit * 0.55f),
-            size = size,
+            color = accentColor.copy(alpha = 0.42f),
+            topLeft = Offset(0f, pixel),
+            size = androidx.compose.ui.geometry.Size(pixel, pixel)
+        )
+
+        // Top-right
+        drawRect(
+            color = accentColor.copy(alpha = 0.65f),
+            topLeft = Offset(
+                size.width - pixel * 2f,
+                0f
+            ),
+            size = androidx.compose.ui.geometry.Size(pixel * 2f, pixel)
+        )
+
+        drawRect(
+            color = accentColor.copy(alpha = 0.42f),
+            topLeft = Offset(
+                size.width - pixel,
+                pixel
+            ),
+            size = androidx.compose.ui.geometry.Size(pixel, pixel)
+        )
+
+        // Bottom-left
+        drawRect(
+            color = accentColor.copy(alpha = 0.45f),
+            topLeft = Offset(
+                0f,
+                size.height - pixel
+            ),
+            size = androidx.compose.ui.geometry.Size(pixel * 2f, pixel)
+        )
+
+        drawRect(
+            color = accentColor.copy(alpha = 0.28f),
+            topLeft = Offset(
+                pixel,
+                size.height - pixel * 2f
+            ),
+            size = androidx.compose.ui.geometry.Size(pixel, pixel)
+        )
+
+        // Bottom-right
+        drawRect(
+            color = accentColor.copy(alpha = 0.45f),
+            topLeft = Offset(
+                size.width - pixel * 2f,
+                size.height - pixel
+            ),
+            size = androidx.compose.ui.geometry.Size(pixel * 2f, pixel)
+        )
+
+        drawRect(
+            color = accentColor.copy(alpha = 0.28f),
+            topLeft = Offset(
+                size.width - pixel * 2f,
+                size.height - pixel * 2f
+            ),
+            size = androidx.compose.ui.geometry.Size(pixel, pixel)
+        )
+
+        /*
+         * ---------------------------------------------------------
+         * SMALL REFLECTION PIXELS
+         * ---------------------------------------------------------
+         */
+
+        drawRect(
+            color = Color.White.copy(alpha = 0.25f),
+            topLeft = Offset(
+                unit * 2f,
+                unit * 2f
+            ),
+            size = androidx.compose.ui.geometry.Size(unit, unit)
+        )
+
+        drawRect(
+            color = Color.White.copy(alpha = 0.16f),
+            topLeft = Offset(
+                unit * 4f,
+                unit * 2f
+            ),
+            size = androidx.compose.ui.geometry.Size(unit * 2f, unit)
         )
     }
 }
@@ -702,6 +889,7 @@ private fun ThumbnailItem(
     var lastTapTime by remember { mutableLongStateOf(0L) }
 
     val canvasThumbnailAnimation by rememberPreference(CanvasThumbnailAnimationKey, defaultValue = false)
+    val pixelatedPlayer by rememberPreference(iad1tya.echo.music.constants.PixelatedPlayerKey, defaultValue = false)
 
     Box(
         modifier = modifier
@@ -782,7 +970,9 @@ private fun ThumbnailItem(
                     rotationZ = rotation
                 }
                 .clip(
-                    if (rotatingThumbnail) {
+                    if (pixelatedPlayer) {
+                        PixelCornerShape(step = 0.035f)
+                    } else if (rotatingThumbnail) {
                         MaterialShapes.Clover8Leaf.toShape()
                     } else {
                         CutCornerShape(8.dp)
@@ -792,6 +982,12 @@ private fun ThumbnailItem(
                     rotationZ = -rotation
                 }
         ) {
+            if (pixelatedPlayer) {
+                PixelArtworkParticles(
+                    accentColor = textBackgroundColor,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
             if (hidePlayerThumbnail) {
                 HiddenThumbnailPlaceholder(textBackgroundColor = textBackgroundColor)
             } else {
@@ -803,16 +999,16 @@ private fun ThumbnailItem(
 
                 ThumbnailImage(
                     artworkUri = artworkUriToUse?.resize(1200, 1200),
-                    cropArtwork = cropAlbumArt
+                    cropArtwork = cropAlbumArt,
+                    pixelatedPlayer = pixelatedPlayer
                 )
             }
-            
-            PixelatedArtworkOverlay(
-                accentColor = textBackgroundColor,
-                isPlaying = isPlaying && isCurrentItem,
-                mediaId = item.mediaId,
-                modifier = Modifier.fillMaxSize(),
-            )
+            if (pixelatedPlayer) {
+                PixelatedArtworkOverlay(
+                    accentColor = textBackgroundColor,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
 
             if (canvasThumbnailAnimation && item.mediaId == currentMediaId && !rotatingThumbnail && playerBackground != PlayerBackgroundStyle.APPLE_MUSIC) {
                 var canvasArtwork by remember(item.mediaId) { mutableStateOf<CanvasArtwork?>(null) }
@@ -989,6 +1185,7 @@ private fun HiddenThumbnailPlaceholder(
 private fun ThumbnailImage(
     artworkUri: String?,
     cropArtwork: Boolean,
+    pixelatedPlayer: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -1001,6 +1198,7 @@ private fun ThumbnailImage(
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(currentUrl)
+                .apply { if (pixelatedPlayer) size(128) }
                 .memoryCachePolicy(CachePolicy.ENABLED)
                 .diskCachePolicy(CachePolicy.ENABLED)
                 .networkCachePolicy(CachePolicy.ENABLED)
@@ -1015,6 +1213,7 @@ private fun ThumbnailImage(
                     currentUrl = url.replace("maxresdefault.jpg", "hqdefault.jpg")
                 }
             },
+            filterQuality = if (pixelatedPlayer) androidx.compose.ui.graphics.FilterQuality.None else androidx.compose.ui.graphics.FilterQuality.Low,
             modifier = Modifier.fillMaxSize()
         )
     }

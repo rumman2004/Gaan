@@ -43,7 +43,7 @@ fun PlaybackError(
     
     
     
-    val httpStatusCode = generateSequence<Throwable?>(error.cause) { it.cause }
+    val httpStatusCode = generateSequence(error.cause) { it.cause }
         .filterIsInstance<HttpDataSource.InvalidResponseCodeException>()
         .firstOrNull()
         ?.responseCode
@@ -55,11 +55,22 @@ fun PlaybackError(
 
     val errorMessage = when {
         isAgeRestricted ->
-            "This track is age-restricted or requires YouTube account verification."
+            "This track is age-restricted or requires YouTube account verification. Try logging in."
+        error.errorCode == PlaybackException.ERROR_CODE_IO_UNSPECIFIED ->
+            "Could not connect to the YouTube stream. Check your internet connection and tap Retry."
+        error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ->
+            "Network connection failed. Check your internet connection and try again."
+        error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ->
+            "Connection timed out. Your internet may be slow. Tap Retry to try again."
+        httpStatusCode == 403 ->
+            "YouTube rejected the stream (403 Forbidden). The stream URL may have expired — tap Retry."
         httpStatusCode != null ->
             "YouTube rejected the stream request (HTTP $httpStatusCode). Retrying will refresh the stream."
         error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ->
             "The YouTube stream request was rejected. Retrying will refresh the stream."
+        rawErrorMessage.contains("unable to play", ignoreCase = true) ||
+        rawErrorMessage.contains("unplayable", ignoreCase = true) ->
+            "This track is currently unplayable on YouTube Music. Try a different track."
         else -> rawErrorMessage
     }
     

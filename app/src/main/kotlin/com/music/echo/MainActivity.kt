@@ -961,7 +961,7 @@ class MainActivity : ComponentActivity() {
                 CompositionLocalProvider(
                     LocalRingtoneViewModel provides ringtoneViewModel,
                     LocalDatabase provides database,
-                    LocalContentColor provides if (pureBlack) Color.White else contentColorFor(MaterialTheme.colorScheme.surface),
+                    LocalContentColor provides if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface,
                     LocalPlayerConnection provides playerConnection,
                     LocalPlayerAwareWindowInsets provides playerAwareWindowInsets,
                     LocalDownloadUtil provides downloadUtil,
@@ -989,6 +989,7 @@ class MainActivity : ComponentActivity() {
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = 24.sp
                                                 ),
+                                                color = MaterialTheme.colorScheme.onSurface,
                                             )
                                         },
                                         actions = {

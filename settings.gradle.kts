@@ -12,9 +12,9 @@ dependencyResolutionManagement {
 }
 
 // F-Droid doesn't support foojay-resolver plugin
-//plugins {
+// plugins {
 //    id("org.gradle.toolchains.foojay-resolver-convention") version("1.0.0")
-//}
+// }
 
 rootProject.name = "echomusic"
 include(

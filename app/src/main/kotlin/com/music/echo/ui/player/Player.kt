@@ -106,6 +106,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
@@ -263,71 +264,323 @@ private fun PixelatedPlayerOverlay(
     modifier: Modifier = Modifier,
 ) {
     val transition = rememberInfiniteTransition(label = "PixelPlayerOverlay")
+
     val pulse by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
+            animation = tween(
+                durationMillis = 3200,
+                easing = LinearEasing
+            ),
+            repeatMode = RepeatMode.Restart
         ),
-        label = "PixelPlayerPulse",
+        label = "PixelPlayerPulse"
     )
 
     Canvas(modifier = modifier) {
-        val unit = 12.dp.toPx().coerceAtLeast(6f)
+
+        // Large pixel unit.
+        // Bigger than the old 12dp grid so it feels intentional.
+        val unit = 18.dp.toPx()
+
         val columns = (size.width / unit).toInt().coerceAtLeast(1)
         val rows = (size.height / unit).toInt().coerceAtLeast(1)
-        val activeColumn = (pulse * columns).toInt().coerceAtMost(columns - 1)
 
-        // Keep the effect mostly at the edges so the artwork, lyrics and controls
-        // remain readable. This is deliberately a cheap Canvas overlay.
+        /*
+         * ---------------------------------------------------------
+         * EDGE PIXEL FIELD
+         * ---------------------------------------------------------
+         */
+
+        // Top pixel clusters
         for (column in 0 until columns) {
-            if (column % 5 == 0) {
+
+            if (column % 4 == 0) {
                 drawRect(
                     color = accentColor.copy(alpha = 0.045f),
                     topLeft = Offset(column * unit, 0f),
-                    size = Size(unit, unit),
+                    size = Size(unit, unit)
                 )
             }
+
             if (column % 7 == 0) {
                 drawRect(
-                    color = accentColor.copy(alpha = 0.04f),
-                    topLeft = Offset(column * unit, size.height - unit),
-                    size = Size(unit, unit),
+                    color = accentColor.copy(alpha = 0.025f),
+                    topLeft = Offset(
+                        column * unit,
+                        unit * 1.5f
+                    ),
+                    size = Size(unit, unit)
                 )
             }
         }
 
+        // Bottom pixel clusters
+        for (column in 0 until columns) {
+
+            if (column % 3 == 0) {
+                drawRect(
+                    color = accentColor.copy(alpha = 0.035f),
+                    topLeft = Offset(
+                        column * unit,
+                        size.height - unit
+                    ),
+                    size = Size(unit, unit)
+                )
+            }
+
+            if (column % 8 == 0) {
+                drawRect(
+                    color = accentColor.copy(alpha = 0.025f),
+                    topLeft = Offset(
+                        column * unit,
+                        size.height - unit * 2
+                    ),
+                    size = Size(unit, unit)
+                )
+            }
+        }
+
+        // Left edge
         for (row in 0 until rows) {
+
+            if (row % 5 == 0) {
+                drawRect(
+                    color = accentColor.copy(alpha = 0.035f),
+                    topLeft = Offset(
+                        0f,
+                        row * unit
+                    ),
+                    size = Size(unit, unit)
+                )
+            }
+        }
+
+        // Right edge
+        for (row in 0 until rows) {
+
             if (row % 6 == 0) {
                 drawRect(
-                    color = accentColor.copy(alpha = 0.04f),
-                    topLeft = Offset(0f, row * unit),
-                    size = Size(unit, unit),
-                )
-            }
-            if (row % 8 == 0) {
-                drawRect(
-                    color = accentColor.copy(alpha = 0.04f),
-                    topLeft = Offset(size.width - unit, row * unit),
-                    size = Size(unit, unit),
+                    color = accentColor.copy(alpha = 0.035f),
+                    topLeft = Offset(
+                        size.width - unit,
+                        row * unit
+                    ),
+                    size = Size(unit, unit)
                 )
             }
         }
 
-        // A single moving pixel keeps the screen alive without a heavy animation.
+        /*
+         * ---------------------------------------------------------
+         * ANIMATED SCAN BLOCK
+         * ---------------------------------------------------------
+         */
+
+        val activeColumn =
+            (pulse * columns)
+                .toInt()
+                .coerceAtMost(columns - 1)
+
         drawRect(
-            color = accentColor.copy(alpha = 0.13f),
-            topLeft = Offset(activeColumn * unit, 0f),
-            size = Size(unit, unit),
+            color = accentColor.copy(alpha = 0.08f),
+            topLeft = Offset(
+                activeColumn * unit,
+                0f
+            ),
+            size = Size(unit * 1.5f, unit)
         )
 
-        // Chunky corner clusters tie the player background to the pixel-art artwork.
-        val corner = unit * 2f
-        drawRect(accentColor.copy(alpha = 0.08f), Offset(0f, 0f), Size(corner, unit))
-        drawRect(accentColor.copy(alpha = 0.06f), Offset(size.width - corner, 0f), Size(corner, unit))
-        drawRect(accentColor.copy(alpha = 0.06f), Offset(0f, size.height - unit), Size(corner, unit))
-        drawRect(accentColor.copy(alpha = 0.08f), Offset(size.width - corner, size.height - unit), Size(corner, unit))
+        /*
+         * ---------------------------------------------------------
+         * CHUNKY CORNER PIXELS
+         * ---------------------------------------------------------
+         */
+
+        val corner = unit * 3f
+
+        // Top-left
+        drawRect(
+            color = accentColor.copy(alpha = 0.08f),
+            topLeft = Offset.Zero,
+            size = Size(corner, unit)
+        )
+
+        drawRect(
+            color = accentColor.copy(alpha = 0.045f),
+            topLeft = Offset(0f, unit),
+            size = Size(unit * 2f, unit)
+        )
+
+        // Top-right
+        drawRect(
+            color = accentColor.copy(alpha = 0.08f),
+            topLeft = Offset(size.width - corner, 0f),
+            size = Size(corner, unit)
+        )
+
+        drawRect(
+            color = accentColor.copy(alpha = 0.045f),
+            topLeft = Offset(
+                size.width - unit * 2f,
+                unit
+            ),
+            size = Size(unit * 2f, unit)
+        )
+
+        // Bottom-left
+        drawRect(
+            color = accentColor.copy(alpha = 0.06f),
+            topLeft = Offset(
+                0f,
+                size.height - unit
+            ),
+            size = Size(corner, unit)
+        )
+
+        // Bottom-right
+        drawRect(
+            color = accentColor.copy(alpha = 0.06f),
+            topLeft = Offset(
+                size.width - corner,
+                size.height - unit
+            ),
+            size = Size(corner, unit)
+        )
+    }
+}
+
+@Composable
+private fun PixelatedPlayerBackdrop(
+    url: String?,
+    modifier: Modifier = Modifier,
+    accentColor: Color,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .clipToBounds()
+    ) {
+
+        /*
+         * ---------------------------------------------------------
+         * PIXELATED ALBUM BACKGROUND
+         * ---------------------------------------------------------
+         */
+
+        if (!url.isNullOrBlank()) {
+
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(url)
+                    .size(48)
+
+                    .build(),
+
+                contentDescription = null,
+
+                contentScale = ContentScale.Crop,
+
+                filterQuality = androidx.compose.ui.graphics.FilterQuality.None,
+
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(12.dp)
+            )
+        }
+
+        /*
+         * ---------------------------------------------------------
+         * DARK CINEMATIC TINT
+         * ---------------------------------------------------------
+         */
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Color.Black.copy(alpha = 0.28f)
+                )
+        )
+
+        /*
+         * ---------------------------------------------------------
+         * SUBTLE ACCENT GLOW
+         * ---------------------------------------------------------
+         */
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            accentColor.copy(alpha = 0.06f),
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.12f)
+                        )
+                    )
+                )
+        )
+
+        /*
+         * ---------------------------------------------------------
+         * BOTTOM CINEMATIC BACKDROP
+         *
+         * This is what keeps the controls readable.
+         * ---------------------------------------------------------
+         */
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0.00f to Color.Transparent,
+                            0.48f to Color.Transparent,
+                            0.66f to Color.Black.copy(alpha = 0.18f),
+                            0.78f to Color.Black.copy(alpha = 0.52f),
+                            0.90f to Color.Black.copy(alpha = 0.78f),
+                            1.00f to Color.Black.copy(alpha = 0.94f)
+                        )
+                    )
+                )
+        )
+
+        /*
+         * ---------------------------------------------------------
+         * SOFT HORIZONTAL CINEMATIC BAND
+         * ---------------------------------------------------------
+         */
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.42f)
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.18f),
+                            Color.Black.copy(alpha = 0.62f)
+                        )
+                    )
+                )
+        )
+
+        /*
+         * ---------------------------------------------------------
+         * PIXEL EDGE DECORATION
+         * ---------------------------------------------------------
+         */
+
+        PixelatedPlayerOverlay(
+            accentColor = accentColor,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 
@@ -384,6 +637,7 @@ fun BottomSheetPlayer(
     )
     val showCodecOnPlayer by rememberPreference(iad1tya.echo.music.constants.ShowCodecOnPlayerKey, false)
     val hidePlayerSlider by rememberPreference(iad1tya.echo.music.constants.HidePlayerSliderKey, false)
+    val pixelatedPlayer by rememberPreference(iad1tya.echo.music.constants.PixelatedPlayerKey, false)
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(HidePlayerThumbnailKey, false)
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
@@ -1026,8 +1280,27 @@ fun BottomSheetPlayer(
                     .fillMaxSize()
                     .background(bottomSheetBackgroundColor)
             ) {
-                when (playerBackground) {
-                    PlayerBackgroundStyle.BLUR -> {
+                if (pixelatedPlayer) {
+                    AnimatedContent(
+                        targetState = backgroundThumbnailUrl,
+                        transitionSpec = {
+                            fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
+                        },
+                        label = "pixelatedBackground"
+                    ) { thumbnailUrl ->
+                        PixelatedPlayerBackdrop(
+                            url = thumbnailUrl,
+                            accentColor = if (playerBackground == PlayerBackgroundStyle.DEFAULT) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                TextBackgroundColor
+                            },
+                            modifier = Modifier.fillMaxSize().alpha(backgroundAlpha)
+                        )
+                    }
+                } else {
+                    when (playerBackground) {
+                        PlayerBackgroundStyle.BLUR -> {
                         AnimatedContent(
                             targetState = backgroundThumbnailUrl,
                             transitionSpec = {
@@ -1480,17 +1753,9 @@ fun BottomSheetPlayer(
                         
                     }
                 }
+            }
 
-                PixelatedPlayerOverlay(
-                    accentColor = if (playerBackground == PlayerBackgroundStyle.DEFAULT) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        TextBackgroundColor
-                    },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .alpha(backgroundAlpha),
-                )
+
             }
         },
         onDismiss = {
@@ -1617,7 +1882,7 @@ fun BottomSheetPlayer(
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleLarge.copy(
-                                fontFamily = LocalPlayerFontFamily.current
+                                fontFamily = if (pixelatedPlayer) androidx.compose.ui.text.font.FontFamily(androidx.compose.ui.text.font.Font(R.font.bbh_bartle_regular)) else LocalPlayerFontFamily.current
                             ),
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,

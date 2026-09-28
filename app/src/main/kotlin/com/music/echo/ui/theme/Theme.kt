@@ -82,6 +82,7 @@ fun echomusicTheme(
     }
 }
 
+
 fun Bitmap.extractThemeColor(): Color {
     val colorsToPopulation = Palette.from(this)
         .maximumColorCount(8)
