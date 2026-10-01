@@ -11,16 +11,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,18 +23,17 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,16 +43,13 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.random.Random
+import iad1tya.echo.music.R
 
-private val Night = Color(0xFF100D25)
-private val NightCard = Color(0xFF1C1738)
-private val Purple = Color(0xFF9B7BFF)
 private val Pink = Color(0xFFFF9BCB)
 private val Lavender = Color(0xFFD9C9FF)
-private val SoftWhite = Color(0xFFF7F2FF)
-private val Muted = Color(0xFFB9B0D0)
 
 private const val SUPPORT_UPI_ID = "gaan.support.sahnaz@fam"
 private const val SUPPORT_PAYEE = "Gaan"
@@ -82,6 +72,9 @@ fun SupportScreen(
 ) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
+    val colors = MaterialTheme.colorScheme
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var paymentMethod by remember { mutableStateOf(PaymentMethod.QR) }
     var copied by remember { mutableStateOf(false) }
@@ -102,6 +95,13 @@ fun SupportScreen(
     LaunchedEffect(paymentUri) {
         qrBitmap = withContext(Dispatchers.Default) {
             generateSupportQr(paymentUri)
+        }
+    }
+
+    LaunchedEffect(copied) {
+        if (copied) {
+            delay(1800)
+            copied = false
         }
     }
 
@@ -135,14 +135,16 @@ fun SupportScreen(
     }
 
     Scaffold(
-        containerColor = Night,
+        containerColor = colors.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         "Support Gaan",
-                        color = SoftWhite,
-                        fontWeight = FontWeight.Bold
+                        color = colors.onSurface,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold
                     )
                 },
                 navigationIcon = {
@@ -150,12 +152,13 @@ fun SupportScreen(
                         Icon(
                             Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = "Back",
-                            tint = SoftWhite
+                            tint = colors.onSurface
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Night
+                    containerColor = colors.surface,
+                    scrolledContainerColor = colors.surface
                 )
             )
         }
@@ -165,7 +168,11 @@ fun SupportScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Night)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(colors.surfaceContainerLow, colors.background)
+                    )
+                )
         ) {
             androidx.compose.foundation.lazy.LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -232,21 +239,27 @@ fun SupportScreen(
                                     )
                                 )
                             } catch (_: ActivityNotFoundException) {
-                                // No compatible UPI application installed.
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        "No compatible UPI app found on this device"
+                                    )
+                                }
                             }
                         }
                     )
                 }
 
                 item {
+                    val colors = MaterialTheme.colorScheme
+
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
                             "Made with love for music lovers.",
-                            color = Muted,
-                            fontSize = 13.sp
+                            color = colors.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
@@ -264,35 +277,53 @@ fun SupportScreen(
 
 @Composable
 private fun SupportHero() {
+    val colors = MaterialTheme.colorScheme
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
-            .clip(RoundedCornerShape(26.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFF34265D),
-                        Color(0xFF20183F),
-                        Color(0xFF17132F)
+            .heightIn(min = 290.dp, max = 340.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .border(1.dp, Pink.copy(alpha = 0.28f), RoundedCornerShape(28.dp))
+    ) {
+        // Gradient background instead of image
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xFF29204C),
+                            Color(0xFF1B1735)
+                        )
                     )
                 )
-            )
-    ) {
-        PixelSkyArtwork(
-            modifier = Modifier.fillMaxSize()
         )
+
+        // Gradient Box removed
+
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 20.dp, vertical = 18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxSize()
+
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
+            androidx.compose.foundation.Image(
+                painter = painterResource(R.mipmap.ic_launcher_round),
+                contentDescription = "Gaan App Icon",
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(CircleShape)
+            )
+            
+            Spacer(Modifier.height(24.dp))
+            
             Text(
                 "KEEP THE MUSIC ALIVE",
-                color = Lavender,
+                color = colors.primaryContainer,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp
@@ -302,15 +333,15 @@ private fun SupportHero() {
 
             Text(
                 "Support Gaan",
-                color = SoftWhite,
-                fontSize = 29.sp,
+                color = Color.White,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold
             )
 
             Text(
                 "A little support makes a big difference.",
-                color = Color(0xFFD6CBEF),
-                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.84f),
+                style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center
             )
         }
@@ -318,187 +349,23 @@ private fun SupportHero() {
 }
 
 @Composable
-private fun PixelSkyArtwork(modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pixelSky")
-
-    val cloudOffset by infiniteTransition.animateFloat(
-        initialValue = -12f,
-        targetValue = 12f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = androidx.compose.animation.core.tween(
-                4500,
-                easing = androidx.compose.animation.core.LinearEasing
-            ),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
-        ),
-        label = "cloudMotion"
-    )
-
-    val starAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 1f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = androidx.compose.animation.core.tween(1500),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
-        ),
-        label = "starTwinkle"
-    )
-
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-
-        // Pixel moon
-        drawRect(
-            Color(0xFFFFE4A8),
-            Offset(w * 0.77f, h * 0.12f),
-            Size(28.dp.toPx(), 28.dp.toPx())
-        )
-        drawRect(
-            Color(0xFF34265D),
-            Offset(w * 0.81f, h * 0.10f),
-            Size(15.dp.toPx(), 15.dp.toPx())
-        )
-
-        // Pixel stars
-        val stars = listOf(
-            Offset(.13f, .14f),
-            Offset(.32f, .23f),
-            Offset(.52f, .10f),
-            Offset(.64f, .29f),
-            Offset(.90f, .35f),
-            Offset(.22f, .39f)
-        )
-
-        stars.forEach {
-            drawRect(
-                Color.White.copy(alpha = starAlpha),
-                Offset(w * it.x, h * it.y),
-                Size(3.dp.toPx(), 3.dp.toPx())
-            )
-        }
-
-        // Moving pixel clouds
-        drawPixelCloud(
-            Offset(w * .18f + cloudOffset, h * .25f),
-            0.8f
-        )
-        drawPixelCloud(
-            Offset(w * .66f - cloudOffset, h * .43f),
-            0.65f
-        )
-
-        // Ground
-        drawRect(
-            Color(0xFF30244C),
-            Offset(0f, h * .76f),
-            Size(w, h * .24f)
-        )
-
-        // Small pixel flowers
-        drawPixelFlower(Offset(w * .12f, h * .79f), Pink)
-        drawPixelFlower(Offset(w * .88f, h * .81f), Lavender)
-
-        // Pixel cat
-        drawPixelCat(Offset(w * .50f, h * .55f))
-    }
-}
-
-private fun DrawScope.drawPixelCloud(
-    center: Offset,
-    scale: Float
-) {
-    val unit = 8.dp.toPx() * scale
-    val cloud = Color(0xFFD8CCF4)
-
-    val blocks = listOf(
-        Offset(0f, unit),
-        Offset(unit, 0f),
-        Offset(unit * 2, 0f),
-        Offset(unit * 3, unit),
-        Offset(-unit, unit),
-        Offset(0f, unit * 2),
-        Offset(unit, unit * 2),
-        Offset(unit * 2, unit * 2),
-        Offset(unit * 3, unit * 2)
-    )
-
-    blocks.forEach {
-        drawRect(
-            cloud.copy(alpha = .75f),
-            Offset(center.x + it.x, center.y + it.y),
-            Size(unit, unit)
-        )
-    }
-}
-
-private fun DrawScope.drawPixelCat(center: Offset) {
-    val p = 8.dp.toPx()
-    val fur = Color(0xFF302443)
-    val light = Color(0xFFFFD8E9)
-    val eye = Color(0xFFFFD978)
-
-    // Body
-    drawRect(fur, Offset(center.x - p * 2, center.y), Size(p * 4, p * 4))
-
-    // Head
-    drawRect(fur, Offset(center.x - p * 2, center.y - p * 3), Size(p * 4, p * 3))
-
-    // Ears
-    drawRect(fur, Offset(center.x - p * 2, center.y - p * 4), Size(p, p))
-    drawRect(fur, Offset(center.x + p, center.y - p * 4), Size(p, p))
-
-    // Inner ears
-    drawRect(light, Offset(center.x - p * 1.7f, center.y - p * 3.7f), Size(p * .45f, p * .45f))
-    drawRect(light, Offset(center.x + p * 1.25f, center.y - p * 3.7f), Size(p * .45f, p * .45f))
-
-    // Eyes
-    drawRect(eye, Offset(center.x - p, center.y - p * 2), Size(p * .45f, p * .65f))
-    drawRect(eye, Offset(center.x + p * .6f, center.y - p * 2), Size(p * .45f, p * .65f))
-
-    // Nose
-    drawRect(Pink, Offset(center.x - p * .25f, center.y - p), Size(p * .5f, p * .35f))
-
-    // Tail
-    drawRect(fur, Offset(center.x + p * 2, center.y + p * 2), Size(p, p))
-    drawRect(fur, Offset(center.x + p * 3, center.y + p), Size(p, p))
-}
-
-private fun DrawScope.drawPixelFlower(
-    center: Offset,
-    petal: Color
-) {
-    val p = 5.dp.toPx()
-
-    drawRect(petal, Offset(center.x - p, center.y - p), Size(p, p))
-    drawRect(petal, Offset(center.x + p, center.y - p), Size(p, p))
-    drawRect(petal, Offset(center.x - p, center.y + p), Size(p, p))
-    drawRect(petal, Offset(center.x + p, center.y + p), Size(p, p))
-    drawRect(Color(0xFFFFD978), center, Size(p, p))
-
-    drawRect(
-        Color(0xFF7ACB9B),
-        Offset(center.x, center.y + p * 2),
-        Size(p, p * 3)
-    )
-}
-
-@Composable
 private fun SectionHeading(
     title: String,
     subtitle: String
 ) {
+    val colors = MaterialTheme.colorScheme
+
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             title,
-            color = SoftWhite,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
+            color = colors.onBackground,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
         )
         Text(
             subtitle,
-            color = Muted,
-            fontSize = 12.sp
+            color = colors.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium
         )
     }
 }
@@ -508,17 +375,19 @@ private fun BenefitCard(
     benefit: SupportBenefit,
     modifier: Modifier = Modifier
 ) {
+    val colors = MaterialTheme.colorScheme
+
     Column(
         modifier = modifier
-            .height(132.dp)
-            .clip(RoundedCornerShape(19.dp))
-            .background(NightCard)
+            .heightIn(min = 142.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(colors.surfaceContainer)
             .border(
                 1.dp,
-                Color.White.copy(alpha = .06f),
-                RoundedCornerShape(19.dp)
+                colors.outlineVariant.copy(alpha = 0.45f),
+                RoundedCornerShape(20.dp)
             )
-            .padding(14.dp),
+            .padding(15.dp),
         verticalArrangement = Arrangement.spacedBy(9.dp)
     ) {
         Box(
@@ -538,16 +407,16 @@ private fun BenefitCard(
 
         Text(
             benefit.title,
-            color = SoftWhite,
+            color = colors.onSurface,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 12.sp
+            style = MaterialTheme.typography.titleSmall
         )
 
         Text(
             benefit.description,
-            color = Muted,
-            fontSize = 10.sp,
-            lineHeight = 14.sp
+            color = colors.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall,
+            lineHeight = 16.sp
         )
     }
 }
@@ -561,6 +430,8 @@ private fun DonationCard(
     onCopyUpi: () -> Unit,
     onPay: () -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -568,14 +439,14 @@ private fun DonationCard(
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        Color(0xFF29204C),
-                        Color(0xFF1B1735)
+                        colors.surfaceContainerHighest,
+                        colors.surfaceContainerHigh
                     )
                 )
             )
             .border(
                 1.dp,
-                Purple.copy(alpha = .25f),
+                colors.primary.copy(alpha = .34f),
                 RoundedCornerShape(24.dp)
             )
             .padding(18.dp),
@@ -585,13 +456,13 @@ private fun DonationCard(
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .background(Purple.copy(alpha = .17f)),
+                .background(colors.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Outlined.Favorite,
                 contentDescription = null,
-                tint = Pink,
+                tint = colors.onPrimaryContainer,
                 modifier = Modifier.size(25.dp)
             )
         }
@@ -600,8 +471,8 @@ private fun DonationCard(
 
         Text(
             "Support the project",
-            color = SoftWhite,
-            fontSize = 20.sp,
+            color = colors.onSurface,
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
 
@@ -609,8 +480,8 @@ private fun DonationCard(
 
         Text(
             "If you enjoy using Gaan, consider supporting its development.",
-            color = Muted,
-            fontSize = 12.sp,
+            color = colors.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             lineHeight = 18.sp
         )
@@ -621,7 +492,7 @@ private fun DonationCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(Night.copy(alpha = .7f))
+                .background(colors.surface.copy(alpha = .78f))
                 .padding(4.dp)
         ) {
             PaymentTab(
@@ -659,7 +530,7 @@ private fun DonationCard(
                                 .size(220.dp)
                                 .shadow(8.dp, RoundedCornerShape(18.dp))
                                 .clip(RoundedCornerShape(18.dp))
-                                .background(Color(0xFFFFF9FF))
+                                .background(Color.White)
                                 .padding(12.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -670,8 +541,8 @@ private fun DonationCard(
                                     modifier = Modifier.fillMaxSize()
                                 )
                             } else {
-                                CircularProgressIndicator(
-                                    color = Purple,
+                                    CircularProgressIndicator(
+                                    color = colors.primary,
                                     modifier = Modifier.size(30.dp)
                                 )
                             }
@@ -681,15 +552,15 @@ private fun DonationCard(
 
                         Text(
                             "Scan using any UPI app",
-                            color = SoftWhite,
+                            color = colors.onSurface,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp
+                            style = MaterialTheme.typography.titleSmall
                         )
 
                         Text(
                             "Google Pay • PhonePe • Paytm • BHIM",
-                            color = Muted,
-                            fontSize = 10.sp
+                            color = colors.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
@@ -702,7 +573,7 @@ private fun DonationCard(
                         Icon(
                             Icons.Outlined.AccountBalanceWallet,
                             contentDescription = null,
-                            tint = Lavender,
+                            tint = colors.primary,
                             modifier = Modifier.size(40.dp)
                         )
 
@@ -710,17 +581,17 @@ private fun DonationCard(
 
                         Text(
                             "Pay directly using UPI",
-                            color = SoftWhite,
+                            color = colors.onSurface,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp
+                            style = MaterialTheme.typography.titleMedium
                         )
 
                         Spacer(Modifier.height(6.dp))
 
                         Text(
                             "Your payment app will open with Gaan's payment details.",
-                            color = Muted,
-                            fontSize = 11.sp,
+                            color = colors.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center
                         )
 
@@ -731,7 +602,7 @@ private fun DonationCard(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(13.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = Lavender
+                                contentColor = colors.primary
                             )
                         ) {
                             Icon(
@@ -756,8 +627,8 @@ private fun DonationCard(
                 .height(52.dp),
             shape = RoundedCornerShape(15.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Purple,
-                contentColor = Color.White
+                containerColor = colors.primary,
+                contentColor = colors.onPrimary
             )
         ) {
             Icon(
@@ -767,7 +638,7 @@ private fun DonationCard(
             )
             Spacer(Modifier.width(9.dp))
             Text(
-                "Support Gaan",
+                if (paymentMethod == PaymentMethod.QR) "Open UPI app" else "Pay with UPI",
                 fontWeight = FontWeight.Bold
             )
         }
@@ -776,8 +647,8 @@ private fun DonationCard(
 
         Text(
             "Every contribution is appreciated. Thank you!",
-            color = Muted,
-            fontSize = 10.sp,
+            color = colors.onSurfaceVariant,
+            style = MaterialTheme.typography.labelSmall,
             textAlign = TextAlign.Center
         )
     }
@@ -790,21 +661,27 @@ private fun PaymentTab(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
+
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(11.dp))
             .background(
-                if (selected) Purple.copy(alpha = .25f)
+                if (selected) colors.primaryContainer
                 else Color.Transparent
             )
-            .clickable(onClick = onClick)
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = Role.Tab
+            )
             .padding(vertical = 11.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             title,
-            color = if (selected) SoftWhite else Muted,
-            fontSize = 12.sp,
+            color = if (selected) colors.onPrimaryContainer else colors.onSurfaceVariant,
+            style = MaterialTheme.typography.labelLarge,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
         )
     }
