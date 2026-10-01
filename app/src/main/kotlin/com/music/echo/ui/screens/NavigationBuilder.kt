@@ -495,4 +495,10 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/echo_extractor") {
         EchoExtractorScreen(navController)
     }
+    
+    composable("settings/support") {
+        iad1tya.echo.music.ui.screens.settings.SupportScreen(
+            onBackClick = { navController.navigateUp() }
+        )
+    }
 }

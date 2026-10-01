@@ -93,6 +93,8 @@ class ListenTogetherManager @Inject constructor(
     
     
     private var activeSyncJob: Job? = null
+    private var hostRevision = 0L
+    private val syncEngine = ListenTogetherSyncEngine()
     
     
     
@@ -156,18 +158,7 @@ class ListenTogetherManager @Inject constructor(
                     player.currentMetadata?.let { metadata ->
                         sendTrackChangeInternal(metadata)
                         lastSyncedTrackId = currentTrackId
-                        
-                        lastSyncedIsPlaying = false
-                    }
-                    
-                    
-                    if (playWhenReady) {
-                        Timber.tag(TAG).d("[SYNC] Host is playing, sending PLAY after track change")
-                        lastSyncedIsPlaying = true
-                        val position = player.currentPosition
-                        sendPlaybackActionWithSync {
-                            client.sendPlaybackAction(PlaybackActions.PLAY, position = position)
-                        }
+                        lastSyncedIsPlaying = playWhenReady
                     }
                     return
                 }
@@ -186,13 +177,13 @@ class ListenTogetherManager @Inject constructor(
                 if (playWhenReady) {
                     Timber.tag(TAG).d("Sending PLAY at position $position")
                     sendPlaybackActionWithSync {
-                        client.sendPlaybackAction(PlaybackActions.PLAY, position = position)
+                        client.sendPlaybackAction(PlaybackActions.PLAY, position = position, revision = ++hostRevision)
                     }
                     lastSyncedIsPlaying = true
                 } else if (!playWhenReady && (lastSyncedIsPlaying == true)) {
                     Timber.tag(TAG).d("Host sending PAUSE at position $position")
                     sendPlaybackActionWithSync {
-                        client.sendPlaybackAction(PlaybackActions.PAUSE, position = position)
+                        client.sendPlaybackAction(PlaybackActions.PAUSE, position = position, revision = ++hostRevision)
                     }
                     lastSyncedIsPlaying = false
                 }
@@ -220,18 +211,6 @@ class ListenTogetherManager @Inject constructor(
                 player.currentMetadata?.let { metadata ->
                     Timber.tag(TAG).d("Host sending track change: ${metadata.title}")
                     sendTrackChange(metadata)
-                    
-                    
-                    
-                    val isPlaying = player.playWhenReady
-                    if (isPlaying) {
-                        Timber.tag(TAG).d("Host is playing during track change, sending PLAY")
-                        lastSyncedIsPlaying = true
-                        val position = player.currentPosition
-                        sendPlaybackActionWithSync {
-                            client.sendPlaybackAction(PlaybackActions.PLAY, position = position)
-                        }
-                    }
                 }
             } catch (e: Exception) {
                 Timber.tag(TAG).e(e, "Error in onMediaItemTransition")
@@ -250,7 +229,7 @@ class ListenTogetherManager @Inject constructor(
                 if (reason == Player.DISCONTINUITY_REASON_SEEK) {
                     Timber.tag(TAG).d("Host sending SEEK to ${newPosition.positionMs}")
                     sendPlaybackActionWithSync {
-                        client.sendPlaybackAction(PlaybackActions.SEEK, position = newPosition.positionMs)
+                        client.sendPlaybackAction(PlaybackActions.SEEK, position = newPosition.positionMs, revision = ++hostRevision)
                     }
                 }
             } catch (e: Exception) {
@@ -306,7 +285,7 @@ class ListenTogetherManager @Inject constructor(
                 if (canControlMusic && !isSyncing) {
                     Timber.tag(TAG).d("Skip Previous triggered")
                     sendPlaybackActionWithSync {
-                        client.sendPlaybackAction(PlaybackActions.SKIP_PREV)
+                        client.sendPlaybackAction(PlaybackActions.SKIP_PREV, revision = ++hostRevision)
                     }
                 }
             } catch (e: Exception) {
@@ -318,7 +297,7 @@ class ListenTogetherManager @Inject constructor(
                 if (canControlMusic && !isSyncing) {
                     Timber.tag(TAG).d("Skip Next triggered")
                     sendPlaybackActionWithSync {
-                        client.sendPlaybackAction(PlaybackActions.SKIP_NEXT)
+                        client.sendPlaybackAction(PlaybackActions.SKIP_NEXT, revision = ++hostRevision)
                     }
                 }
             } catch (e: Exception) {
@@ -330,7 +309,7 @@ class ListenTogetherManager @Inject constructor(
                 if (canControlMusic && !isSyncing) {
                     Timber.tag(TAG).d("Restart Song triggered (sending 1ms as 0ms workaround)")
                     sendPlaybackActionWithSync {
-                        client.sendPlaybackAction(PlaybackActions.SEEK, position = 1L)
+                        client.sendPlaybackAction(PlaybackActions.SEEK, position = 1L, revision = ++hostRevision)
                     }
                 }
             } catch (e: Exception) {
@@ -471,7 +450,7 @@ class ListenTogetherManager @Inject constructor(
                             val position = player.currentPosition
                             Timber.tag(TAG).d("Host already playing on room create, sending PLAY at $position")
                             sendPlaybackActionWithSync {
-                            client.sendPlaybackAction(PlaybackActions.PLAY, position = position)
+                            client.sendPlaybackAction(PlaybackActions.PLAY, position = position, revision = ++hostRevision)
                         }
                         }
                     }
@@ -519,7 +498,7 @@ class ListenTogetherManager @Inject constructor(
                             if (player.playWhenReady) {
                                 val pos = player.currentPosition
                                 Timber.tag(TAG).d("[SYNC] Host playing, sending PLAY at $pos for new joiner")
-                                client.sendPlaybackAction(PlaybackActions.PLAY, position = pos)
+                                client.sendPlaybackAction(PlaybackActions.PLAY, position = pos, revision = ++hostRevision)
                             }
                             
                         }
@@ -595,22 +574,6 @@ class ListenTogetherManager @Inject constructor(
                             } else {
                                 Timber.tag(TAG).d("Reconnected as host, server already has current track $serverTrackId")
                             }
-                            
-                            
-                            scope.launch {
-                                delay(500)
-                                try {
-                                    val currentPlayer = playerConnection?.player
-                                    if (currentPlayer?.playWhenReady == true) {
-                                        val pos = currentPlayer.currentPosition
-                                        Timber.tag(TAG)
-                                            .d("Reconnected host is playing, sending PLAY at $pos")
-                                        client.sendPlaybackAction(PlaybackActions.PLAY, position = pos)
-                                    }
-                                } catch (e: Exception) {
-                                    Timber.tag(TAG).e(e, "Error sending play state after reconnect")
-                                }
-                            }
                         }
                     } else {
                         
@@ -660,14 +623,6 @@ class ListenTogetherManager @Inject constructor(
                     if (metadata != null) {
                         Timber.tag(TAG).d("New host sending current track: ${metadata.title}")
                         sendTrackChangeInternal(metadata)
-
-                        if (player.playWhenReady) {
-                            val position = player.currentPosition
-                            Timber.tag(TAG).d("New host is playing, sending PLAY at $position")
-                            sendPlaybackActionWithSync {
-                                client.sendPlaybackAction(PlaybackActions.PLAY, position = position)
-                            }
-                        }
                     }
                 }
             }
@@ -724,6 +679,7 @@ class ListenTogetherManager @Inject constructor(
         bufferingTrackId = null
         isSyncing = false
         bufferCompleteReceivedForTrack = null
+        syncEngine.reset()
         lastRole = RoomRole.NONE
         lastSyncActionTime = 0L  
         ++currentTrackGeneration  
@@ -836,6 +792,10 @@ class ListenTogetherManager @Inject constructor(
         val player = connection.player
         
         Timber.tag(TAG).d("Handling playback sync: ${action.action}, position: ${action.position}")
+        if (!syncEngine.shouldProcessEvent(action.revision, isHost)) {
+            Timber.tag(TAG).d("Guest: Ignoring stale or duplicate event: ${action.action}")
+            return
+        }
 
         isSyncing = true
 
@@ -1131,22 +1091,77 @@ class ListenTogetherManager @Inject constructor(
     }
     
     private fun handleSyncState(state: SyncStatePayload) {
-        val now = System.currentTimeMillis()
-        val adjustedPos = if (state.isPlaying) {
-            state.position + kotlin.math.max(0L, now - state.lastUpdate)
-        } else {
-            state.position
+        if (!syncEngine.shouldProcessEvent(state.revision, isHost)) {
+            Timber.tag(TAG).d("Guest: Ignoring stale SYNC_STATE (revision ${state.revision})")
+            return
         }
-
-        Timber.tag(TAG).d("handleSyncState: playing=${state.isPlaying}, pos=${state.position} -> adj=$adjustedPos, track=${state.currentTrack?.id}")
+        val connection = playerConnection ?: return
+        val player = connection.player
         
-        applyPlaybackState(
-            currentTrack = state.currentTrack,
-            isPlaying = state.isPlaying,
-            position = adjustedPos,
-            queue = state.queue,
-            bypassBuffer = true  
+        val localTrackId = player.currentMediaItem?.mediaId
+        val remoteTrackId = state.currentTrack?.id
+        val now = System.currentTimeMillis()
+        
+        // If there's a queue provided or track is fundamentally missing, do a full apply
+        if (state.queue != null || localTrackId != remoteTrackId || bufferingTrackId != null) {
+            val adjustedPos = if (state.isPlaying) {
+                state.position + kotlin.math.max(0L, now - state.lastUpdate)
+            } else {
+                state.position
+            }
+            Timber.tag(TAG).d("SyncState: Full sync applied")
+            applyPlaybackState(
+                currentTrack = state.currentTrack,
+                isPlaying = state.isPlaying,
+                position = adjustedPos,
+                queue = state.queue,
+                bypassBuffer = true
+            )
+            applyHostVolumeIfNeeded(state.volume)
+            return
+        }
+        
+        val decision = syncEngine.calculateDriftCorrection(
+            localTrackId = localTrackId,
+            remoteTrackId = remoteTrackId,
+            localPosition = player.currentPosition,
+            localIsPlaying = player.playWhenReady,
+            remotePosition = state.position,
+            remoteIsPlaying = state.isPlaying,
+            remoteLastUpdate = state.lastUpdate,
+            now = now
         )
+        
+        Timber.tag(TAG).d("SyncState decision: $decision (drift correction)")
+        
+        when (decision) {
+            ListenTogetherSyncEngine.SyncDecision.DO_NOTHING -> {
+                // Already in sync
+            }
+            ListenTogetherSyncEngine.SyncDecision.SEEK -> {
+                val expectedRemotePosition = if (state.isPlaying) {
+                    state.position + (now - state.lastUpdate)
+                } else {
+                    state.position
+                }
+                connection.seekTo(expectedRemotePosition)
+            }
+            ListenTogetherSyncEngine.SyncDecision.FULL_SYNC -> {
+                val adjustedPos = if (state.isPlaying) {
+                    state.position + kotlin.math.max(0L, now - state.lastUpdate)
+                } else {
+                    state.position
+                }
+                applyPlaybackState(
+                    currentTrack = state.currentTrack,
+                    isPlaying = state.isPlaying,
+                    position = adjustedPos,
+                    queue = null, // don't clobber queue if it wasn't provided
+                    bypassBuffer = true
+                )
+            }
+        }
+        
         applyHostVolumeIfNeeded(state.volume)
     }
 
@@ -1523,8 +1538,7 @@ class ListenTogetherManager @Inject constructor(
                 PlaybackActions.CHANGE_TRACK,
                 queueTitle = currentTitle,
                 trackInfo = trackInfo,
-                queue = currentQueue
-            )
+                queue = currentQueue, revision = ++hostRevision)
         }
     }
 
@@ -1554,8 +1568,7 @@ class ListenTogetherManager @Inject constructor(
                         client.sendPlaybackAction(
                             PlaybackActions.SYNC_QUEUE,
                             queueTitle = queueTitle,
-                            queue = tracks
-                        )
+                            queue = tracks, revision = ++hostRevision)
                     }
                 }
         }
@@ -1575,7 +1588,7 @@ class ListenTogetherManager @Inject constructor(
                     if (last != null && kotlin.math.abs(last - normalized) < 0.01f) return@collectLatest
 
                     lastSyncedVolume = normalized
-                    client.sendPlaybackAction(PlaybackActions.SET_VOLUME, volume = normalized)
+                    client.sendPlaybackAction(PlaybackActions.SET_VOLUME, volume = normalized, revision = ++hostRevision)
                 }
         }
     }
@@ -1632,8 +1645,7 @@ class ListenTogetherManager @Inject constructor(
                 client.sendPlaybackAction(
                     PlaybackActions.SYNC_QUEUE,
                     queueTitle = queueTitle,
-                    queue = tracks
-                )
+                    queue = tracks, revision = ++hostRevision)
             }
             val playWhenReady = player.playWhenReady
             val position = player.currentPosition
@@ -1689,9 +1701,31 @@ class ListenTogetherManager @Inject constructor(
                 delay(10000L) 
                 playerConnection?.player?.let { player ->
                     if (player.playWhenReady && player.playbackState == Player.STATE_READY) {
-                        val pos = player.currentPosition
-                        Timber.tag(TAG).d("Host heartbeat: sending PLAY at pos $pos")
-                        client.sendPlaybackAction(PlaybackActions.PLAY, position = pos)
+                        Timber.tag(TAG).d("Host heartbeat: sending compact SYNC_STATE")
+                        val metadata = player.currentMetadata
+                        val trackInfo = if (metadata != null) {
+                            val durationMs = if (metadata.duration > 0) metadata.duration.toLong() * 1000 else 180000L
+                            TrackInfo(
+                                id = metadata.id,
+                                title = metadata.title,
+                                artist = metadata.artists.joinToString(", ") { it.name },
+                                album = metadata.album?.title,
+                                duration = durationMs,
+                                thumbnail = metadata.thumbnailUrl,
+                                suggestedBy = metadata.suggestedBy
+                            )
+                        } else null
+                        
+                        val state = SyncStatePayload(
+                            currentTrack = trackInfo,
+                            isPlaying = player.playWhenReady,
+                            position = player.currentPosition,
+                            lastUpdate = System.currentTimeMillis(),
+                            queue = null, // compact heartbeat
+                            volume = null,
+                            revision = ++hostRevision
+                        )
+                        client.sendSyncState(state)
                     }
                 }
             }

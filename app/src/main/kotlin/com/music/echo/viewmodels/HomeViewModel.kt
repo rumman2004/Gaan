@@ -89,7 +89,7 @@ class HomeViewModel @Inject constructor(
     val forgottenFavorites = MutableStateFlow<List<Song>?>(null)
     val keepListening = MutableStateFlow<List<LocalItem>?>(null)
     val similarRecommendations = MutableStateFlow<List<SimilarRecommendation>?>(null)
-    val accountPlaylists = MutableStateFlow<List<PlaylistItem>?>(null)
+    val accountPlaylists = database.localAndSpotifyPlaylists().stateIn(viewModelScope, SharingStarted.Lazily, null)
     val homePage = MutableStateFlow<HomePage?>(null)
     val explorePage = MutableStateFlow<ExplorePage?>(null)
     val communityPlaylists = MutableStateFlow<List<CommunityPlaylistItem>?>(null)
@@ -556,7 +556,7 @@ class HomeViewModel @Inject constructor(
                 }.onFailure { reportException(it) }
             }
             if (YouTube.cookie != null) {
-                launch(Dispatchers.IO) { loadAccountPlaylists() }
+                
             }
         }
 
@@ -640,16 +640,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private suspend fun loadAccountPlaylists() {
-        val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
-        YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
-            accountPlaylists.value = it.items.filterIsInstance<PlaylistItem>()
-                .filterNot { it.id == "SE" }
-                .filterYoutubeShorts(hideYoutubeShorts)
-        }.onFailure {
-            reportException(it)
-        }
-    }
+    
 
     fun refresh() {
         if (isRefreshing.value) return
@@ -712,7 +703,7 @@ class HomeViewModel @Inject constructor(
                         } else {
                             accountName.value = "Guest"
                             accountImageUrl.value = null
-                            accountPlaylists.value = null
+                            
                         }
                     } finally {
                         isProcessingAccountData = false
@@ -726,9 +717,7 @@ class HomeViewModel @Inject constructor(
                 .map { it[HideYoutubeShortsKey] ?: false }
                 .distinctUntilChanged()
                 .collect {
-                    if (YouTube.cookie != null && accountPlaylists.value != null) {
-                        loadAccountPlaylists()
-                    }
+                    
                 }
         }
     }

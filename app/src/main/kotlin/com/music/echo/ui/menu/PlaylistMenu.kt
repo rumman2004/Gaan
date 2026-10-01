@@ -690,6 +690,31 @@ fun PlaylistMenu(
                         )
                     }
                     playlist.playlist.shareLink?.let { shareLink ->
+
+                    if (playlist.playlist.id.startsWith("SPOTIFY_PLAYLIST_")) {
+                        add(
+                            Material3MenuItemData(
+                                title = { Text(text = "Sync with Spotify") },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.sync),
+                                        contentDescription = null,
+                                    )
+                                },
+                                onClick = {
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        try {
+                                            iad1tya.echo.music.spotifyimport.SpotifyImportRepository(context.applicationContext, database).refreshImportedPlaylist(playlist.playlist.id)
+                                        } catch(e: Exception) {
+                                            iad1tya.echo.music.utils.reportException(e)
+                                        }
+                                    }
+                                    onDismiss()
+                                }
+                            )
+                        )
+                    }
+
                         add(
                             Material3MenuItemData(
                                 title = { Text(text = stringResource(R.string.share)) },

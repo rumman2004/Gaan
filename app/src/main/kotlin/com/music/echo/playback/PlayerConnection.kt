@@ -233,6 +233,15 @@ class PlayerConnection(
         }
     }
 
+    fun warmUpSong(mediaId: String) {
+        if (!playerReadinessFlow.value) return
+        try {
+            service.warmUpSong(mediaId)
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "Error in warmUpSong")
+        }
+    }
+
     fun startRadioSeamlessly() {
         
         if (shouldBlockPlaybackChanges?.invoke() == true) {

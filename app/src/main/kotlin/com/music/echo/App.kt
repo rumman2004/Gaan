@@ -184,6 +184,7 @@ class App : Application(), SingletonImageLoader.Factory {
     }
 
     private fun observeSettingsChanges() {
+        var poTokenWarmed = false
         applicationScope.launch(Dispatchers.IO) {
             dataStore.data
                 .map { it[VisitorDataKey] }
@@ -195,6 +196,12 @@ class App : Application(), SingletonImageLoader.Factory {
                                 settings[VisitorDataKey] = newVisitorData
                             }
                         }
+                    if (!poTokenWarmed && YouTube.visitorData != null) {
+                        poTokenWarmed = true
+                        runCatching {
+                            iad1tya.echo.music.utils.YTPlayerUtils.prewarmPoToken()
+                        }.onFailure { Timber.tag("App").w(it, "PoToken prewarm failed") }
+                    }
                 }
         }
 

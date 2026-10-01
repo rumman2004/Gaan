@@ -41,8 +41,8 @@ android {
         applicationId = "com.gaan.music"
         minSdk = 26
         targetSdk = 36
-        versionCode = 536
-        versionName = "5.8.94"
+        versionCode = 537
+        versionName = "5.8.95"
 
         buildConfigField("String", "GIT_HASH", "\"${getGitHash()}\"")
 
@@ -271,6 +271,7 @@ dependencies {
 
 
     implementation(libs.haze)
+    implementation("com.google.zxing:core:3.5.3")
     implementation(libs.guava)
     implementation(libs.coroutines.guava)
     implementation(libs.concurrent.futures)

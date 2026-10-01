@@ -1339,7 +1339,8 @@ class ListenTogetherClient @Inject constructor(
         insertNext: Boolean? = null, 
         queue: List<TrackInfo>? = null,
         queueTitle: String? = null,
-        volume: Float? = null
+        volume: Float? = null,
+        revision: Long? = null
     ) {
         val canControl = _role.value == RoomRole.HOST ||
             (_role.value == RoomRole.GUEST && _roomState.value?.allowParticipantControl == true)
@@ -1349,8 +1350,18 @@ class ListenTogetherClient @Inject constructor(
         }
         sendMessage(
             MessageTypes.PLAYBACK_ACTION,
-            PlaybackActionPayload(action, trackId, position, trackInfo, insertNext, queue, queueTitle, volume)
+            PlaybackActionPayload(action, trackId, position, trackInfo, insertNext, queue, queueTitle, volume, serverTime = null, revision = revision)
         )
+    }
+
+    fun sendSyncState(state: SyncStatePayload) {
+        val canControl = _role.value == RoomRole.HOST ||
+            (_role.value == RoomRole.GUEST && _roomState.value?.allowParticipantControl == true)
+        if (!canControl) {
+            log(LogLevel.ERROR, "Cannot control playback", "Not allowed")
+            return
+        }
+        sendMessage(MessageTypes.SYNC_STATE, state)
     }
 
     

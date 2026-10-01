@@ -172,7 +172,9 @@ object YTPlayerUtils {
         Timber.tag(TAG).d("Authentication status: ${if (isLoggedIn) "LOGGED_IN" else "ANONYMOUS"}")
 
         // Get signature timestamp (same as before for normal content)
+        val sigStartTime = System.currentTimeMillis()
         val signatureTimestamp = getSignatureTimestampOrNull(videoId)
+        Timber.tag(logTag).i("TIMING: Stage [signature timestamp] for $videoId took ${System.currentTimeMillis() - sigStartTime}ms")
         Timber.tag(logTag).d("Signature timestamp: ${signatureTimestamp.timestamp}")
 
         // Generate PoToken
@@ -180,10 +182,13 @@ object YTPlayerUtils {
         var sessionId = YouTube.visitorData
         if (sessionId == null) {
             Timber.tag(logTag).d("sessionId is null, fetching visitorData...")
+            val visitorStartTime = System.currentTimeMillis()
             sessionId = YouTube.visitorData().getOrNull()?.also { 
                 YouTube.visitorData = it 
             }
+            Timber.tag(logTag).i("TIMING: Stage [visitor data] for $videoId took ${System.currentTimeMillis() - visitorStartTime}ms")
         }
+        val poStartTime = System.currentTimeMillis()
         if (MAIN_CLIENT.useWebPoTokens && sessionId != null) {
             Timber.tag(logTag).d("Generating PoToken for WEB_REMIX with sessionId")
             try {
@@ -195,13 +200,18 @@ object YTPlayerUtils {
                 Timber.tag(logTag).e(e, "PoToken generation failed: ${e.message}")
             }
         }
+        val poDuration = System.currentTimeMillis() - poStartTime
+        Timber.tag(logTag).i("TIMING: PoToken generation took ${poDuration}ms")
 
         // Try WEB_REMIX with signature timestamp and poToken (same as before)
         Timber.tag(logTag).d("Attempting to get player response using MAIN_CLIENT: ${MAIN_CLIENT.clientName}")
+        val mainStartTime = System.currentTimeMillis()
         val mainPlayerResponse = YouTube
             .player(videoId, playlistId, MAIN_CLIENT, signatureTimestamp.timestamp, poToken?.playerRequestPoToken)
             .onFailure { Timber.tag(logTag).w(it, "Metadata client failed; continuing with playback fallbacks") }
             .getOrNull()
+        val mainDuration = System.currentTimeMillis() - mainStartTime
+        Timber.tag(logTag).i("TIMING: Main client (${MAIN_CLIENT.clientName}) resolution took ${mainDuration}ms")
 
         // Debug uploaded track response
         if (isUploadedTrack || playlistId?.contains("MLPT") == true) {
@@ -298,11 +308,14 @@ object YTPlayerUtils {
                 val clientPoToken = if (client.useWebPoTokens) poToken?.playerRequestPoToken else null
                 // Skip signature timestamp for age-restricted (faster), use it for normal content
                 val clientSigTimestamp = if (wasOriginallyAgeRestricted) null else signatureTimestamp.timestamp
+                val startTime = System.currentTimeMillis()
                 streamPlayerResponse =
                     YouTube.player(videoId, playlistId, client, clientSigTimestamp, clientPoToken)
                         .onFailure {
                             Timber.tag(logTag).e(it, "player() request FAILED for %s", client.clientName)
                         }.getOrNull()
+                val duration = System.currentTimeMillis() - startTime
+                Timber.tag(logTag).i("TIMING: Client ${client.clientName} took ${duration}ms to resolve stream for $videoId")
             }
 
             // process current client response

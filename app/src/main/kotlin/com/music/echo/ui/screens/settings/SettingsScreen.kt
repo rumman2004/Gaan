@@ -312,6 +312,17 @@ highlightKey: String? = null) {
                     )
                 )
             }
+            if ("support".contains(searchLower) || "donate".contains(searchLower)) {
+                add(
+                    Material3SettingsItem(
+                        isHighlighted = (highlightKey == "support"),
+                        icon = painterResource(R.drawable.ic_heart),
+                        title = { Text("Support Gaan") },
+                        description = { Text("Help us keep Gaan free and ad-free") },
+                        onClick = { navController.navigate("settings/support") }
+                    )
+                )
+            }
         }
 
         val finalItemsList = if (searchQuery.isNotEmpty()) {

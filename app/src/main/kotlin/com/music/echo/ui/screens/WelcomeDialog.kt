@@ -65,6 +65,30 @@ fun WelcomeDialog(
             ) {
                 // Main Header
                 WelcomeAppCard()
+                
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    WelcomeSectionCard(title = "Setup") {
+                        WelcomeActionRow(
+                            icon = painterResource(R.drawable.link),
+                            title = "Enable App Links",
+                            subtitle = "Open shared songs directly",
+                            onClick = {
+                                try {
+                                    val intent = android.content.Intent(
+                                        android.provider.Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS,
+                                        android.net.Uri.parse("package:${context.packageName}")
+                                    )
+                                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    android.widget.Toast.makeText(context, "Cannot open settings", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
+                    }
+                }
+                
                 WelcomeSectionCard(title = "Follow Developer") {
                     WelcomeActionRow(
                         icon = painterResource(R.drawable.ic_instagram_new),
@@ -102,6 +126,28 @@ fun WelcomeDialog(
                     )
                 }
                 
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                WelcomeSectionCard(title = "Support Development") {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    WelcomeActionRow(
+                        icon = painterResource(R.drawable.ic_heart),
+                        title = "Donate via UPI",
+                        subtitle = "Help keep the app running nicely",
+                        onClick = {
+                            try {
+                                val intent = android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse("upi://pay?pa=gaan.support.sahnaz@fam&pn=Developer&cu=INR")
+                                )
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                android.widget.Toast.makeText(context, "No UPI app found", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Button(

@@ -561,7 +561,9 @@ fun DailyDiscoverCard(
                         text = stringResource(messageRes, "${dailyDiscover.seed.title} • ${dailyDiscover.seed.artists.joinToString(", ") { it.name }}"),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        // This sits on a dark artwork scrim. onSurface becomes dark in
+                        // light theme and makes the footer unreadable.
+                        color = Color.White.copy(alpha = 0.78f),
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
@@ -578,9 +580,91 @@ enum class PixelScene {
     NIGHT
 }
 
+private data class LivingPixelStar(val x: Float, val y: Float, val size: Float, val phase: Float, val sparkle: Boolean)
+
+private data class LivingPixelPalette(
+    val top: Color, val upper: Color, val horizon: Color, val bottom: Color,
+    val back: Color, val middle: Color, val ground: Color, val accent: Color, val cloud: Color,
+)
+
+private fun livingPixelPalette(scene: PixelScene) = when (scene) {
+    PixelScene.MORNING -> LivingPixelPalette(Color(0xFF21133D), Color(0xFF513D70), Color(0xFFC77D75), Color(0xFFF2B36D), Color(0xFF765080), Color(0xFF4B315F), Color(0xFF211B38), Color(0xFFFFD166), Color(0xFFE9A7C1))
+    PixelScene.DAY -> LivingPixelPalette(Color(0xFF5DB6D9), Color(0xFF70C9E8), Color(0xFFA3DBE8), Color(0xFF2F789D), Color(0xFF4B91AE), Color(0xFF28627E), Color(0xFF173B52), Color(0xFFFFE066), Color.White)
+    PixelScene.EVENING -> LivingPixelPalette(Color(0xFF6D365F), Color(0xFFA34F75), Color(0xFFE68B75), Color(0xFF251632), Color(0xFF633A67), Color(0xFF3B234C), Color(0xFF170D25), Color(0xFFFF9F68), Color(0xFFB65B88))
+    PixelScene.NIGHT -> LivingPixelPalette(Color(0xFF080A18), Color(0xFF11142D), Color(0xFF191B3C), Color(0xFF1B1030), Color(0xFF25264D), Color(0xFF161832), Color(0xFF090A18), Color(0xFFF5E8B5), Color(0xFF64658C))
+}
+
+/** The Home screen's living, time-aware pixel world. */
+@Composable
+private fun AnimePixelGreetingCard(userName: String) {
+    var now by remember { mutableStateOf(LocalDateTime.now()) }
+    LaunchedEffect(Unit) {
+        while (true) { now = LocalDateTime.now(); kotlinx.coroutines.delay(1_000L) }
+    }
+    val scene = when (now.hour) { in 5..11 -> PixelScene.MORNING; in 12..16 -> PixelScene.DAY; in 17..20 -> PixelScene.EVENING; else -> PixelScene.NIGHT }
+    val palette = livingPixelPalette(scene)
+    val skyTop by androidx.compose.animation.animateColorAsState(palette.top, androidx.compose.animation.core.tween(6000, easing = androidx.compose.animation.core.FastOutSlowInEasing), label = "livingSkyTop")
+    val skyUpper by androidx.compose.animation.animateColorAsState(palette.upper, androidx.compose.animation.core.tween(6000, easing = androidx.compose.animation.core.FastOutSlowInEasing), label = "livingSkyUpper")
+    val skyHorizon by androidx.compose.animation.animateColorAsState(palette.horizon, androidx.compose.animation.core.tween(6000, easing = androidx.compose.animation.core.FastOutSlowInEasing), label = "livingSkyHorizon")
+    val skyBottom by androidx.compose.animation.animateColorAsState(palette.bottom, androidx.compose.animation.core.tween(6000, easing = androidx.compose.animation.core.FastOutSlowInEasing), label = "livingSkyBottom")
+    val back by androidx.compose.animation.animateColorAsState(palette.back, androidx.compose.animation.core.tween(6000), label = "livingBack")
+    val middle by androidx.compose.animation.animateColorAsState(palette.middle, androidx.compose.animation.core.tween(6000), label = "livingMiddle")
+    val ground by androidx.compose.animation.animateColorAsState(palette.ground, androidx.compose.animation.core.tween(6000), label = "livingGround")
+    val accent by androidx.compose.animation.animateColorAsState(palette.accent, androidx.compose.animation.core.tween(5000), label = "livingAccent")
+    val cloudColor by androidx.compose.animation.animateColorAsState(palette.cloud, androidx.compose.animation.core.tween(6000), label = "livingCloud")
+    val stars = remember { val r = Random(8128); List(32) { LivingPixelStar(.04f + r.nextFloat() * .92f, .06f + r.nextFloat() * .48f, listOf(1.5f, 2f, 3f)[r.nextInt(3)], r.nextFloat(), r.nextInt(5) == 0) } }
+    val infinite = androidx.compose.animation.core.rememberInfiniteTransition(label = "livingPixelWorld")
+    val cloudA by infinite.animateFloat(-.2f, 1.1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(32000, easing = androidx.compose.animation.core.LinearEasing)), label = "cloudA")
+    val cloudB by infinite.animateFloat(1.1f, -.2f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(24000, easing = androidx.compose.animation.core.LinearEasing)), label = "cloudB")
+    val cloudC by infinite.animateFloat(-.25f, 1.12f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(38000, easing = androidx.compose.animation.core.LinearEasing)), label = "cloudC")
+    val cloudFloat by infinite.animateFloat(-.012f, .012f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(5200), androidx.compose.animation.core.RepeatMode.Reverse), label = "cloudFloat")
+    val celestialFloat by infinite.animateFloat(-.014f, .014f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(5000), androidx.compose.animation.core.RepeatMode.Reverse), label = "celestialFloat")
+    val glow by infinite.animateFloat(.78f, 1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(3400), androidx.compose.animation.core.RepeatMode.Reverse), label = "celestialGlow")
+    val scan by infinite.animateFloat(-.15f, 1.15f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(5000, easing = androidx.compose.animation.core.LinearEasing)), label = "scan")
+    val twinkle by infinite.animateFloat(0f, 1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(2600), androidx.compose.animation.core.RepeatMode.Reverse), label = "twinkle")
+    val time = now.hour + now.minute / 60f
+    val starTarget = when (scene) { PixelScene.NIGHT -> 1f; PixelScene.EVENING -> (time - 17f) / 4f; PixelScene.MORNING -> (1f - (time - 5f) / 7f).coerceIn(0f, .35f); else -> 0f }
+    val starAlpha by androidx.compose.animation.core.animateFloatAsState(starTarget.coerceIn(0f, 1f), androidx.compose.animation.core.tween(6000), label = "livingStars")
+    val greeting = when (scene) { PixelScene.MORNING -> "GOOD MORNING"; PixelScene.DAY -> "GOOD AFTERNOON"; PixelScene.EVENING -> "GOOD EVENING"; PixelScene.NIGHT -> "GOOD NIGHT" }
+    val clock = now.format(DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()))
+    val date = now.format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy", Locale.getDefault()))
+    val shape = CutCornerShape(6.dp, 26.dp, 6.dp, 26.dp)
+    Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).height(250.dp).clip(shape)) {
+        Canvas(Modifier.fillMaxSize()) {
+            val w = size.width; val h = size.height; val unit = (w / 100f).coerceAtLeast(4f)
+            drawRect(Brush.verticalGradient(listOf(skyTop, skyUpper, skyHorizon, skyBottom)))
+            drawRect(Brush.verticalGradient(listOf(Color.Transparent, accent.copy(alpha = .18f), Color.Transparent), startY = h * .38f, endY = h * .82f))
+            stars.forEachIndexed { index, star ->
+                val pulse = (.55f + .45f * kotlin.math.sin((twinkle + star.phase) * 6.283f * (1 + index % 3))).coerceIn(.25f, 1f); val a = starAlpha * pulse
+                drawRect(Color.White.copy(alpha = a), androidx.compose.ui.geometry.Offset(w * star.x, h * star.y), androidx.compose.ui.geometry.Size(star.size.dp.toPx(), star.size.dp.toPx()))
+                if (star.sparkle && a > .4f) { drawRect(Color.White.copy(alpha = a * .7f), androidx.compose.ui.geometry.Offset(w * star.x - unit, h * star.y), androidx.compose.ui.geometry.Size(unit * 3, star.size.dp.toPx())); drawRect(Color.White.copy(alpha = a * .7f), androidx.compose.ui.geometry.Offset(w * star.x, h * star.y - unit), androidx.compose.ui.geometry.Size(star.size.dp.toPx(), unit * 3)) }
+            }
+            fun cloud(x: Float, y: Float, scale: Float, alpha: Float) { val p = unit * scale; val left = w * x; val top = h * (y + cloudFloat); listOf(0 to 2, 2 to 1, 5 to 0, 8 to 2, 11 to 3).forEach { (px, py) -> drawRect(cloudColor.copy(alpha = alpha), androidx.compose.ui.geometry.Offset(left + px * p, top + py * p), androidx.compose.ui.geometry.Size(p * 4, p * 2)) } }
+            cloud(cloudA, .22f, 1f, .68f); cloud(cloudB, .35f, .72f, .40f); cloud(cloudC, .13f, 1.25f, .52f)
+            val celestialY = when (scene) { PixelScene.MORNING -> .55f - ((time - 5f) / 7f) * .28f; PixelScene.DAY -> .25f; PixelScene.EVENING -> .25f + ((time - 17f) / 4f) * .38f; PixelScene.NIGHT -> .25f }
+            val center = androidx.compose.ui.geometry.Offset(w * .77f, h * (celestialY + celestialFloat)); drawCircle(accent.copy(alpha = .11f * glow), unit * 13f, center); drawCircle(accent.copy(alpha = .16f * glow), unit * 8f, center)
+            if (scene == PixelScene.NIGHT) { drawCircle(accent, unit * 5f, center); drawCircle(skyUpper, unit * 4.1f, androidx.compose.ui.geometry.Offset(center.x + unit * 2.1f, center.y - unit * 1.2f)) } else { drawRect(accent, androidx.compose.ui.geometry.Offset(center.x - unit * 4, center.y - unit * 4), androidx.compose.ui.geometry.Size(unit * 8, unit * 8)); for (i in -2..2) { drawRect(accent.copy(alpha = .8f), androidx.compose.ui.geometry.Offset(center.x + i * unit * 2.4f - unit / 2, center.y - unit * 6), androidx.compose.ui.geometry.Size(unit, unit * 2)); drawRect(accent.copy(alpha = .8f), androidx.compose.ui.geometry.Offset(center.x + i * unit * 2.4f - unit / 2, center.y + unit * 4), androidx.compose.ui.geometry.Size(unit, unit * 2)) } }
+            fun mountain(color: Color, base: Float, peak: Float, step: Float) { val path = androidx.compose.ui.graphics.Path().apply { moveTo(0f, h * base); var x = -unit * 4; var i = 0; while (x < w + unit * 4) { lineTo(x, h * peak + (i % 3) * unit * 2); x += w * step; i++ }; lineTo(w, h * base); close() }; drawPath(path, color) }
+            mountain(back.copy(alpha = .72f), .80f, .58f, .16f); mountain(middle.copy(alpha = .90f), .87f, .66f, .20f); drawRect(ground, androidx.compose.ui.geometry.Offset(0f, h * .86f), androidx.compose.ui.geometry.Size(w, h * .14f))
+            for (i in 0..18) drawRect(accent.copy(alpha = .18f), androidx.compose.ui.geometry.Offset((i * 47 % 100) / 100f * w, h * (.84f + (i % 3) * .025f)), androidx.compose.ui.geometry.Size(unit, unit * (1 + i % 2)))
+            drawRect(accent.copy(alpha = .25f), androidx.compose.ui.geometry.Offset(w * scan, h - unit * 2), androidx.compose.ui.geometry.Size(unit * 9, unit)); drawRect(accent.copy(alpha = .45f), style = androidx.compose.ui.graphics.drawscope.Stroke(2f), size = size)
+        }
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .62f)), startY = 95f, endY = 250f)))
+        Column(Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 15.dp).fillMaxWidth(.76f)) {
+            Text(greeting, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.5.sp, color = accent)
+            Text("Hello, ${userName.ifBlank { "Guest" }}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("Let the music set the mood.", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = .82f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.clip(CutCornerShape(6.dp)).background(Color.Black.copy(alpha = .48f)).border(1.dp, accent.copy(alpha = .55f), CutCornerShape(6.dp)).padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) { Text(clock, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White); Spacer(Modifier.width(8.dp)); Text(date, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = .7f), maxLines = 1) }
+        }
+        Row(Modifier.align(Alignment.TopStart).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) { repeat(5) { Box(Modifier.size(if (it == 0) 8.dp else 5.dp).background(accent.copy(alpha = if (it == 0) .95f else .45f))) } }
+        Box(Modifier.align(Alignment.TopEnd).padding(14.dp).size(6.dp).background(accent))
+    }
+}
+
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-private fun AnimePixelGreetingCard(
+private fun LegacyAnimePixelGreetingCard(
     userName: String,
 ) {
     var now by remember {
@@ -1127,6 +1211,155 @@ private fun AnimePixelGreetingCard(
         }
     }
 }
+
+@Composable
+private fun MostPlayedHeroCarousel(
+    songs: List<Song>,
+    playCounts: Map<String, Long>,
+    onPlay: (Song) -> Unit,
+    onLongClick: (Song) -> Unit,
+) {
+    if (songs.isEmpty()) return
+
+    val pagerState = rememberPagerState(pageCount = { songs.size })
+
+    LaunchedEffect(songs.map { it.id }) {
+        if (songs.size > 1) {
+            while (true) {
+                kotlinx.coroutines.delay(6_000L)
+                if (!pagerState.isScrollInProgress) {
+                    pagerState.animateScrollToPage((pagerState.currentPage + 1) % songs.size)
+                }
+            }
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        HorizontalPager(
+            state = pagerState,
+            contentPadding = PaddingValues(horizontal = 12.dp),
+            pageSpacing = 10.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp),
+        ) { page ->
+            val song = songs[page]
+            val playCount = playCounts[song.id] ?: 0L
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CutCornerShape(6.dp, 26.dp, 6.dp, 26.dp))
+                    .combinedClickable(
+                        onClick = { onPlay(song) },
+                        onLongClick = { onLongClick(song) },
+                    )
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(song.thumbnailUrl?.resize(1080, 1080))
+                        .memoryCachePolicy(CachePolicy.ENABLED)
+                        .diskCachePolicy(CachePolicy.ENABLED)
+                        .networkCachePolicy(CachePolicy.ENABLED)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = song.song.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.Black.copy(alpha = 0.12f),
+                                    Color.Black.copy(alpha = 0.32f),
+                                    Color.Black.copy(alpha = 0.90f),
+                                )
+                            )
+                        )
+                )
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .padding(18.dp)
+                ) {
+                    Text(
+                        text = "MOST PLAYED ${page + 1}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        // The image behind this label is dark in both themes; a dynamic
+                        // light-theme primary can be too low-contrast here.
+                        color = Color.White.copy(alpha = 0.92f),
+                        letterSpacing = 1.5.sp,
+                    )
+                    Spacer(modifier = Modifier.height(5.dp))
+                    Text(
+                        text = song.song.title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = song.artists.joinToString { it.name },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.82f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = if (playCount > 0) "$playCount ${if (playCount == 1L) "play" else "plays"}" else "Tap to play",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color.White.copy(alpha = 0.76f),
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        IconButton(
+                            onClick = { onPlay(song) },
+                            modifier = Modifier
+                                .size(52.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_widget_play),
+                                contentDescription = "Play ${song.song.title}",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(25.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (songs.size > 1) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(24.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                repeat(songs.size) { index ->
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .size(if (pagerState.currentPage == index) 8.dp else 5.dp)
+                            .background(
+                                MaterialTheme.colorScheme.primary.copy(
+                                    alpha = if (pagerState.currentPage == index) 0.95f else 0.45f
+                                )
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
 // ─────────────────────────────────────────────────────────────────────────
 // DISCOVERY SECTION HELPERS
 // ─────────────────────────────────────────────────────────────────────────
@@ -1444,6 +1677,11 @@ fun HomeScreen(
     val mostPlayedSong by remember(mostPlayedStats?.songId) {
         database.song(mostPlayedStats?.songId)
     }.collectAsState(initial = null)
+    val mostPlayedSongs by database.mostPlayedSongs(0L, limit = 5).collectAsState(initial = emptyList())
+    val mostPlayedSongsStats by database.mostPlayedSongsStats(0L, limit = 5).collectAsState(initial = emptyList())
+    val mostPlayedPlayCounts = remember(mostPlayedSongsStats) {
+        mostPlayedSongsStats.associate { it.id to it.songCountListened.toLong() }
+    }
     val haptic = LocalHapticFeedback.current
 
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsState()
@@ -1848,40 +2086,33 @@ fun HomeScreen(
             ) {
                 item(key = "anime_pixel_greeting") {
                     AnimePixelGreetingCard(
-                        userName = accountName
-                            .takeIf { it.isNotBlank() && !it.equals("Guest", ignoreCase = true) }
-                            ?: "Rumman",
+                        userName = accountName.takeIf { it.isNotBlank() } ?: "Guest",
                     )
                 }
 
-                mostPlayedSong?.let { song ->
-                    val playCount = mostPlayedStats?.playCount ?: 0L
-                    if (playCount > 0) {
-                        item(key = "most_played_hero") {
-                            MostPlayedHero(
-                                song = song,
-                                playCount = playCount,
-                                onPlay = {
-                                    if (song.id == mediaMetadata?.id) {
-                                        playerConnection.togglePlayPause()
-                                    } else {
-                                        playerConnection.playQueue(
-                                            YouTubeQueue.radio(song.toMediaMetadata())
-                                        )
-                                    }
-                                },
-                                onLongClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    menuState.show {
-                                        SongMenu(
-                                            originalSong = song,
-                                            navController = navController,
-                                            onDismiss = menuState::dismiss
-                                        )
-                                    }
+                if (mostPlayedSong != null && (mostPlayedStats?.playCount ?: 0L) > 0L && mostPlayedSongs.isNotEmpty()) {
+                    item(key = "most_played_hero") {
+                        MostPlayedHeroCarousel(
+                            songs = mostPlayedSongs,
+                            playCounts = mostPlayedPlayCounts,
+                            onPlay = { song ->
+                                if (song.id == mediaMetadata?.id) {
+                                    playerConnection.togglePlayPause()
+                                } else {
+                                    playerConnection.playQueue(YouTubeQueue.radio(song.toMediaMetadata()))
                                 }
-                            )
-                        }
+                            },
+                            onLongClick = { song ->
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                menuState.show {
+                                    SongMenu(
+                                        originalSong = song,
+                                        navController = navController,
+                                        onDismiss = menuState::dismiss
+                                    )
+                                }
+                            }
+                        )
                     }
                 }
 
@@ -2379,42 +2610,16 @@ fun HomeScreen(
                             accountPlaylists?.takeIf { it.isNotEmpty() }?.let { accountPlaylists ->
                                 item(key = "account_playlists_title") {
                                     NavigationTitle(
-                                        label = stringResource(R.string.your_youtube_playlists),
-                                        title = accountName,
-                                        thumbnail = {
-                                            if (url != null) {
-                                                AsyncImage(
-                                                    model = ImageRequest.Builder(LocalContext.current)
-                                                        .data(url)
-                                                        .diskCachePolicy(CachePolicy.ENABLED)
-                                                        .diskCacheKey(url)
-                                                        .crossfade(false)
-                                                        .build(),
-                                                    placeholder = painterResource(id = R.drawable.person),
-                                                    error = painterResource(id = R.drawable.person),
-                                                    contentDescription = null,
-                                                    contentScale = ContentScale.Crop,
-                                                    modifier = Modifier
-                                                        .size(ListThumbnailSize)
-                                                        .clip(CircleShape)
-                                                )
-                                            } else {
-                                                Icon(
-                                                    painter = painterResource(id = R.drawable.person),
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(ListThumbnailSize)
-                                                )
-                                            }
-                                        },
+                                        title = "Your Playlists",
                                         onClick = {
-                                            navController.navigate("account")
+                                            navController.navigate("library")
                                         },
                                         modifier = Modifier.animateItem()
                                     )
                                 }
 
                                 item(key = "account_playlists_list") {
-                                    val distinctPlaylists = accountPlaylists.distinctBy { it.id }
+                                    val distinctPlaylists = accountPlaylists.distinctBy { it.playlist.id }
                                     HorizontalMultiBrowseCarousel(
                                         state = rememberCarouselState { distinctPlaylists.size },
                                         preferredItemWidth = 250.dp,
@@ -2437,12 +2642,12 @@ fun HomeScreen(
                                                 .focusable()
                                                 .combinedClickable(
                                                     onClick = {
-                                                        navController.navigateToPlaylistItem(playlist)
+                                                        navController.navigate("local_playlist/${playlist.playlist.id}")
                                                     },
                                                     onLongClick = {
                                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                         menuState.show {
-                                                            YouTubePlaylistMenu(
+                                                            iad1tya.echo.music.ui.menu.PlaylistMenu(
                                                                 playlist = playlist,
                                                                 coroutineScope = scope,
                                                                 onDismiss = menuState::dismiss
@@ -2453,7 +2658,7 @@ fun HomeScreen(
                                         ) {
                                             AsyncImage(
                                                 model = coil3.request.ImageRequest.Builder(LocalContext.current)
-                                                    .data(playlist.thumbnail)
+                                                    .data(playlist.playlist.thumbnailUrl ?: iad1tya.echo.music.R.drawable.ic_widget_play)
                                                     .crossfade(true)
                                                     .build(),
                                                 contentDescription = null,
@@ -2468,9 +2673,9 @@ fun HomeScreen(
                                                         Brush.verticalGradient(
                                                             colors = listOf(
                                                                 Color.Transparent,
-                                                                Color.Transparent,
-                                                                Color.Black.copy(alpha = 0.7f)
-                                                            )
+                                                                Color.Black.copy(alpha = 0.8f)
+                                                            ),
+                                                            startY = 100f
                                                         )
                                                     )
                                             )
@@ -2481,15 +2686,16 @@ fun HomeScreen(
                                                     .padding(16.dp)
                                             ) {
                                                 Text(
-                                                    text = playlist.title,
-                                                    style = MaterialTheme.typography.titleMedium,
+                                                    text = playlist.playlist.name,
+                                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                                     color = Color.White,
-                                                    maxLines = 1,
+                                                    maxLines = 2,
                                                     overflow = TextOverflow.Ellipsis
                                                 )
+                                                Spacer(modifier = Modifier.height(4.dp))
                                                 Text(
-                                                    text = playlist.author?.name ?: "",
-                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    text = "${playlist.songCount} songs",
+                                                    style = MaterialTheme.typography.bodySmall,
                                                     color = Color.White.copy(alpha = 0.7f),
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis

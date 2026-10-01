@@ -148,7 +148,8 @@ data class PlaybackActionPayload(
     val queue: List<TrackInfo>? = null,
     @SerialName("queue_title") val queueTitle: String? = null,
     val volume: Float? = null,
-    @SerialName("server_time") val serverTime: Long? = null
+    @SerialName("server_time") val serverTime: Long? = null,
+    val revision: Long? = null
 )
 
 @Serializable
@@ -302,7 +303,8 @@ data class SyncStatePayload(
     val position: Long,
     @SerialName("last_update") val lastUpdate: Long,
     val queue: List<TrackInfo>? = null,
-    val volume: Float? = null
+    val volume: Float? = null,
+    val revision: Long? = null
 )
 
 

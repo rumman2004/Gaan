@@ -8,6 +8,7 @@ import iad1tya.echo.music.models.MediaMetadata
 
 interface Queue {
     val preloadItem: MediaMetadata?
+    val initialMediaId: String? get() = null
 
     suspend fun getInitialStatus(): Status
 

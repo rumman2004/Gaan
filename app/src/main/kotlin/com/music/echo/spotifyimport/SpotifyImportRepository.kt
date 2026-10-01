@@ -254,6 +254,43 @@ class SpotifyImportRepository @Inject constructor(
             SpotifyImportSummaryUi(summaries)
         }
 
+
+    suspend fun refreshImportedPlaylist(localPlaylistId: String) {
+        if (!localPlaylistId.startsWith("SPOTIFY_PLAYLIST_")) return
+        val spotifyId = localPlaylistId.removePrefix("SPOTIFY_PLAYLIST_")
+        
+        ensureAuthenticated()
+        val playlist = spotifyCallWithTokenRetry {
+            Spotify.playlist(spotifyId).getOrThrow()
+        }
+        
+        val resolved =
+            if (playlist.tracks?.total != null) {
+                playlist
+            } else {
+                playlistTrackCount(playlist.id)
+                    ?.let { count -> playlist.copy(tracks = SpotifyPlaylistTracksRef(total = count)) }
+                    ?: playlist
+            }
+
+        val source = SpotifyImportSource.Playlist(resolved)
+        val tracks = fetchAllTracks(source)
+        if (tracks.isEmpty()) {
+            mirrorPlaylist(source, emptyList())
+            return
+        }
+
+        val matched = matchTracks(
+            sourceIndex = 0,
+            sourceCount = 1,
+            sourceTitle = source.title,
+            tracks = tracks,
+            onProgress = {},
+        )
+
+        mirrorPlaylist(source, matched.map { it.metadata })
+    }
+
     private suspend fun ensureAuthenticated() {
         val prefs = context.dataStore.data.first()
         val token = prefs[SpotifyAccessTokenKey].orEmpty()

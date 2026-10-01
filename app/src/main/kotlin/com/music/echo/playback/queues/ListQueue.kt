@@ -12,6 +12,7 @@ class ListQueue(
     val position: Long = 0L,
 ) : Queue {
     override val preloadItem: MediaMetadata? = null
+    override val initialMediaId: String? get() = items.getOrNull(startIndex)?.mediaId
 
     override suspend fun getInitialStatus() = Queue.Status(title, items, startIndex, position)
 
