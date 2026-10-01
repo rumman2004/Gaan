@@ -638,8 +638,9 @@ private fun DonationCard(
             )
             Spacer(Modifier.width(9.dp))
             Text(
-                if (paymentMethod == PaymentMethod.QR) "Open UPI app" else "Pay with UPI",
-                fontWeight = FontWeight.Bold
+                if (paymentMethod == PaymentMethod.QR) "OPEN UPI APP" else "PAY WITH UPI",
+                fontWeight = FontWeight.Bold,
+                color = colors.onPrimary
             )
         }
 
