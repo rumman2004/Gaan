@@ -90,13 +90,6 @@ fun SupportScreen(
             .toString()
     }
 
-    var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
-
-    LaunchedEffect(paymentUri) {
-        qrBitmap = withContext(Dispatchers.Default) {
-            generateSupportQr(paymentUri)
-        }
-    }
 
     LaunchedEffect(copied) {
         if (copied) {
@@ -220,7 +213,6 @@ fun SupportScreen(
                     DonationCard(
                         paymentMethod = paymentMethod,
                         onMethodChange = { paymentMethod = it },
-                        qrBitmap = qrBitmap,
                         copied = copied,
                         onCopyUpi = {
                             clipboard.setText(AnnotatedString(SUPPORT_UPI_ID))
@@ -425,7 +417,6 @@ private fun BenefitCard(
 private fun DonationCard(
     paymentMethod: PaymentMethod,
     onMethodChange: (PaymentMethod) -> Unit,
-    qrBitmap: Bitmap?,
     copied: Boolean,
     onCopyUpi: () -> Unit,
     onPay: () -> Unit
@@ -534,18 +525,11 @@ private fun DonationCard(
                                 .padding(12.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (qrBitmap != null) {
-                                androidx.compose.foundation.Image(
-                                    bitmap = qrBitmap.asImageBitmap(),
-                                    contentDescription = "Gaan UPI payment QR code",
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            } else {
-                                    CircularProgressIndicator(
-                                    color = colors.primary,
-                                    modifier = Modifier.size(30.dp)
-                                )
-                            }
+                            androidx.compose.foundation.Image(
+                                painter = painterResource(iad1tya.echo.music.R.drawable.fam_qr),
+                                contentDescription = "Gaan UPI payment QR code",
+                                modifier = Modifier.fillMaxSize()
+                            )
                         }
 
                         Spacer(Modifier.height(12.dp))
