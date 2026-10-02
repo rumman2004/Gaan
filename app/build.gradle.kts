@@ -32,7 +32,8 @@ val gaanLauncherResDir = layout.buildDirectory.dir("generated/gaanLauncherRes")
 
 val generateGaanLauncherIcons = tasks.register("generateGaanLauncherIcons") {
     inputs.file(gaanLauncherSource)
-    outputs.dir(gaanLauncherResDir)
+// Removed implicit outputs.dir(gaanLauncherResDir) to avoid Gradle SourceSet implicit dependency validation errors.
+    // Instead we wire it to run before preBuild.
 
     doLast {
         check(gaanLauncherSource.isFile) {
@@ -263,10 +264,11 @@ android {
     }
 }
 
-tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Resources") }
-    .configureEach {
+tasks.configureEach {
+    if (name == "preBuild") {
         dependsOn(generateGaanLauncherIcons)
     }
+}
 
 protobuf {
     protoc {
