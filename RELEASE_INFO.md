@@ -1,5 +1,18 @@
 # Gaan Release Notes
 
+## Version 5.8.96
+
+### 🚀 What's New & Improved
+- **Spotify Playlist Sync:** Added a new "Sync" button for imported Spotify playlists, allowing you to instantly fetch and merge newly added songs directly into the app!
+- **Adaptive App Icon:** Designed a proper Adaptive Icon for Android 8+ devices so the app icon displays beautifully without a forced white background circle.
+- **About Page Logo:** Restored the original glowing colors of the transparent Gaan logo in the About screen.
+
+### 🛠️ Bug Fixes & Stability
+- Fixed GitHub Actions CI pipeline issues with KSP crashes and Universal APK uploading.
+- Resolved Resource "Multiple substitutions" errors caused by duplicate launcher icons.
+
+---
+
 ## Version 5.2.93
 
 ### 🚀 What's New & Improved
