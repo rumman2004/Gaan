@@ -539,6 +539,7 @@ fun LocalPlaylistScreen(
                                 onshowDeletePlaylistDialog = { showDeletePlaylistDialog = true },
                                 onStartSearch = { isSearching = true },
                                 onExport = { exportCsvLauncher.launch("${playlist.playlist.name}_export.csv") },
+                                onSyncSpotify = { viewModel.syncSpotifyPlaylist(it) },
                                 snackbarHostState = snackbarHostState,
                                 modifier = Modifier.animateItem()
                             )
@@ -905,6 +906,7 @@ fun LocalPlaylistHeader(
     onshowDeletePlaylistDialog: () -> Unit,
     onStartSearch: () -> Unit,
     onExport: () -> Unit,
+    onSyncSpotify: (String) -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier,
 ) {
@@ -1363,7 +1365,7 @@ fun LocalPlaylistHeader(
                             onEdit = onShowEditDialog,
                             onSync = {
                                 if (playlist.id.startsWith("SPOTIFY_PLAYLIST_")) {
-                                    viewModel.syncSpotifyPlaylist(playlist.id)
+                                    onSyncSpotify(playlist.id)
                                     scope.launch(Dispatchers.Main) {
                                         snackbarHostState.showSnackbar(context.getString(R.string.playlist_synced))
                                     }
