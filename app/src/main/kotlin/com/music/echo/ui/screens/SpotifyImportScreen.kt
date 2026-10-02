@@ -391,7 +391,7 @@ private fun SpotifyLoginSheet(
 
                             Log.i(
                                 "GaanSpotifyWebView",
-                                "WebView provider: \${WebView.getCurrentWebViewPackage(context)?.versionName ?: "unknown"}",
+                                "WebView provider: \${WebView.getCurrentWebViewPackage()?.versionName ?: "unknown"}",
                             )
 
                             webChromeClient = object : WebChromeClient() {
