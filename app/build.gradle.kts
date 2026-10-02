@@ -293,6 +293,11 @@ android {
     }
 }
 
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Resources") }
+    .configureEach {
+        dependsOn(generateGaanLauncherIcons)
+    }
+
 protobuf {
     protoc {
         artifact = "com.google.protobuf:protoc:${libs.versions.protobuf.get()}"
