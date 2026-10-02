@@ -44,6 +44,7 @@ constructor(
     @ApplicationContext context: Context,
     private val database: MusicDatabase,
     private val syncUtils: SyncUtils,
+    private val spotifyImportRepository: iad1tya.echo.music.spotifyimport.SpotifyImportRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     val playlistId = savedStateHandle.get<String>("playlistId")!!
@@ -120,6 +121,16 @@ constructor(
     val suggestions = _suggestions.asStateFlow()
 
     private var hasFetchedSuggestions = false
+
+    fun syncSpotifyPlaylist(playlistId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                spotifyImportRepository.refreshImportedPlaylist(playlistId)
+            } catch (e: Exception) {
+                iad1tya.echo.music.utils.reportException(e)
+            }
+        }
+    }
 
     fun fetchSuggestions() {
         if (hasFetchedSuggestions) return
