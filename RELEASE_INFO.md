@@ -13,6 +13,31 @@
 
 ---
 
+## Version 5.8.95
+
+### 🚀 What's New & Improved
+- **Automated App Icons:** Completely rebuilt the Android app icon build system to automatically crop and generate high-quality launcher icons at build-time.
+- **Streaming Reliability:** Synchronized internal player configurations with upstream to fix recent music streaming API breakages.
+
+### 🛠️ Bug Fixes & Stability
+- **Gradle Pipeline Stability:** Fixed a severe memory leak and crashing issue with KSP (Kotlin Symbol Processing) during the CI build process.
+- **Build Toolchain Updates:** Addressed multiple APK packaging path issues and implicit dependency conflicts to ensure compatibility with Android Gradle Plugin 9.0.
+
+---
+
+## Version 5.8.94
+
+### 🚀 What's New & Improved
+- **Support Screen:** Introduced a new Support screen where users can view the app icon and easily make UPI donations via a static QR code.
+- **Listen Together Sync:** Added robust state synchronization features to keep group listening sessions perfectly timed!
+- **Your Playlists:** Added a dedicated "Your Playlists" hub for easier local playlist management.
+- **Spotify Sync Engine:** Laid the architectural groundwork and database foundations for syncing updated playlists from Spotify.
+
+### 🛠️ Bug Fixes & Stability
+- Fixed several UI text visibility issues and corrected misaligned icon resources across the app.
+
+---
+
 ## Version 5.2.93
 
 ### 🚀 What's New & Improved
