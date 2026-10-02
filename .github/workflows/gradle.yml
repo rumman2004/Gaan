@@ -132,14 +132,14 @@ jobs:
           mkdir -p app/build/outputs/apk/release-artifacts
 
           # Universal APK — named Gaan.apk
-          find app/build/outputs/apk/universalGms* -name "*.apk" | while read -r apk_path; do
+          find app/build/outputs/apk/universalGms -name "*.apk" 2>/dev/null | while read -r apk_path; do
               cp "$apk_path" "app/build/outputs/apk/release-artifacts/Gaan.apk"
               echo "Copied $apk_path -> release-artifacts/Gaan.apk"
           done
 
           # Per-architecture APKs (only present for release builds)
           for arch_dir in arm64Gms armeabiGms x86_64Gms; do
-              find "app/build/outputs/apk/${arch_dir}Release/" -name "*.apk" 2>/dev/null | while read -r apk_path; do
+              find "app/build/outputs/apk/${arch_dir}" -name "*.apk" 2>/dev/null | while read -r apk_path; do
                   arch_name=$(echo "$arch_dir" | sed 's/Gms$//')
                   target_name="Gaan-${arch_name}.apk"
                   cp "$apk_path" "app/build/outputs/apk/release-artifacts/$target_name"
