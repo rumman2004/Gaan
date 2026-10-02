@@ -217,9 +217,8 @@ private fun AboutAppCard() {
             ) {
                 if (rotation <= 90f) {
                     Image(
-                        painter = painterResource(R.drawable.ic_launcher_nobg),
+                        painter = painterResource(R.drawable.gaan_transparent_logo),
                         contentDescription = null,
-                        colorFilter = ColorFilter.tint(if (isDark) Color.White else Color(0xFFEA3829)),
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
