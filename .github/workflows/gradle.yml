@@ -98,19 +98,7 @@ jobs:
             echo "is_release=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build Universal APK
-        env:
-          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
-          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
-          GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
-          GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
-        run: ./gradlew assembleUniversalGms${{ steps.build_type.outputs.build_variant }}
-
-      - name: Build per-architecture APKs (Release only)
-        if: steps.build_type.outputs.is_release == 'true'
+      - name: Build APKs
         env:
           STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
@@ -120,9 +108,11 @@ jobs:
           GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
           GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
         run: |
-          ./gradlew assembleArm64GmsRelease
-          ./gradlew assembleArmeabiGmsRelease
-          ./gradlew assembleX86_64GmsRelease
+          if [ "${{ steps.build_type.outputs.is_release }}" == "true" ]; then
+            ./gradlew assembleUniversalGmsRelease assembleArm64GmsRelease assembleArmeabiGmsRelease assembleX86_64GmsRelease --no-daemon
+          else
+            ./gradlew assembleUniversalGmsRelease --no-daemon
+          fi
 
       - name: Rename and Organize APKs
         run: |
