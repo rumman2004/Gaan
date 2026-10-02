@@ -24,6 +24,74 @@ plugins {
     alias(libs.plugins.protobufPlugin)
 }
 
+
+// Generate every launcher density from the single cropped source image.
+// Keeping the source in /assets makes the launcher icon deterministic across local and CI builds.
+val gaanLauncherSource = rootProject.file("assets/Gaan.png")
+val gaanLauncherResDir = layout.buildDirectory.dir("generated/gaanLauncherRes")
+
+val generateGaanLauncherIcons = tasks.register("generateGaanLauncherIcons") {
+    inputs.file(gaanLauncherSource)
+    outputs.dir(gaanLauncherResDir)
+
+    doLast {
+        check(gaanLauncherSource.isFile) {
+            "Missing launcher icon source: ${gaanLauncherSource.absolutePath}"
+        }
+
+        val source = javax.imageio.ImageIO.read(gaanLauncherSource)
+            ?: error("Unable to read assets/Gaan.png")
+        val side = minOf(source.width, source.height)
+        val left = (source.width - side) / 2
+        val top = (source.height - side) / 2
+        val densities = mapOf(
+            "mdpi" to 48,
+            "hdpi" to 72,
+            "xhdpi" to 96,
+            "xxhdpi" to 144,
+            "xxxhdpi" to 192
+        )
+        val names = listOf(
+            "ic_launcher",
+            "ic_launcher_round",
+            "ic_launcher_static",
+            "ic_launcher_static_round",
+            "legacy_icon",
+            "legacy_icon_round"
+        )
+
+        densities.forEach { (density, size) ->
+            val dir = gaanLauncherResDir.get().dir("mipmap-$density").get().asFile
+            dir.mkdirs()
+            val output = java.awt.image.BufferedImage(
+                size, size, java.awt.image.BufferedImage.TYPE_INT_ARGB
+            )
+            val graphics = output.createGraphics()
+            try {
+                graphics.setRenderingHint(
+                    java.awt.RenderingHints.KEY_INTERPOLATION,
+                    java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC
+                )
+                graphics.setRenderingHint(
+                    java.awt.RenderingHints.KEY_RENDERING,
+                    java.awt.RenderingHints.VALUE_RENDER_QUALITY
+                )
+                graphics.drawImage(
+                    source,
+                    0, 0, size, size,
+                    left, top, left + side, top + side,
+                    null
+                )
+            } finally {
+                graphics.dispose()
+            }
+            names.forEach { name ->
+                javax.imageio.ImageIO.write(output, "png", dir.resolve("$name.png"))
+            }
+        }
+    }
+}
+
 val hasGoogleServicesConfig = file("google-services.json").exists()
 
 if (hasGoogleServicesConfig) {
