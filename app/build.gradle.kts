@@ -72,6 +72,8 @@ android {
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
+    sourceSets.getByName("main").res.srcDir(gaanLauncherResDir)
+
 
     defaultConfig {
         applicationId = "com.gaan.music"
