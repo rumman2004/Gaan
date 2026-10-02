@@ -25,8 +25,8 @@ plugins {
 }
 
 
-// Generate every launcher density from the single cropped source image.
-// Keeping the source in /assets makes the launcher icon deterministic across local and CI builds.
+// Copy the already-cropped square launcher artwork into every Android mipmap density.
+// Avoid java.awt/ImageIO: those desktop APIs are not available in the Gradle runtime.
 val gaanLauncherSource = rootProject.file("assets/Gaan.png")
 val gaanLauncherResDir = layout.buildDirectory.dir("generated/gaanLauncherRes")
 
@@ -39,18 +39,8 @@ val generateGaanLauncherIcons = tasks.register("generateGaanLauncherIcons") {
             "Missing launcher icon source: ${gaanLauncherSource.absolutePath}"
         }
 
-        val source = javax.imageio.ImageIO.read(gaanLauncherSource)
-            ?: error("Unable to read assets/Gaan.png")
-        val side = minOf(source.width, source.height)
-        val left = (source.width - side) / 2
-        val top = (source.height - side) / 2
-        val densities = mapOf(
-            "mdpi" to 48,
-            "hdpi" to 72,
-            "xhdpi" to 96,
-            "xxhdpi" to 144,
-            "xxxhdpi" to 192
-        )
+        val outputRoot = gaanLauncherResDir.get().asFile
+        val densities = listOf("mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi")
         val names = listOf(
             "ic_launcher",
             "ic_launcher_round",
@@ -60,33 +50,11 @@ val generateGaanLauncherIcons = tasks.register("generateGaanLauncherIcons") {
             "legacy_icon_round"
         )
 
-        densities.forEach { (density, size) ->
-            val dir = gaanLauncherResDir.get().dir("mipmap-$density").get().asFile
-            dir.mkdirs()
-            val output = java.awt.image.BufferedImage(
-                size, size, java.awt.image.BufferedImage.TYPE_INT_ARGB
-            )
-            val graphics = output.createGraphics()
-            try {
-                graphics.setRenderingHint(
-                    java.awt.RenderingHints.KEY_INTERPOLATION,
-                    java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC
-                )
-                graphics.setRenderingHint(
-                    java.awt.RenderingHints.KEY_RENDERING,
-                    java.awt.RenderingHints.VALUE_RENDER_QUALITY
-                )
-                graphics.drawImage(
-                    source,
-                    0, 0, size, size,
-                    left, top, left + side, top + side,
-                    null
-                )
-            } finally {
-                graphics.dispose()
-            }
+        densities.forEach { density ->
+            val directory = outputRoot.resolve("mipmap-$density")
+            directory.mkdirs()
             names.forEach { name ->
-                javax.imageio.ImageIO.write(output, "png", dir.resolve("$name.png"))
+                gaanLauncherSource.copyTo(directory.resolve("$name.png"), overwrite = true)
             }
         }
     }
@@ -103,6 +71,8 @@ android {
     namespace = "iad1tya.echo.music"
     compileSdk = 36
     ndkVersion = "27.0.12077973"
+
+    sourceSets.getByName("main").res.srcDir(gaanLauncherResDir)
 
 
     defaultConfig {
