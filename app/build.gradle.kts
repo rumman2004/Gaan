@@ -72,7 +72,7 @@ android {
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
-    sourceSets.getByName("main").res.srcDir(gaanLauncherResDir)
+    sourceSets.getByName("main").res.srcDir(gaanLauncherResDir.get().asFile)
 
 
     defaultConfig {
