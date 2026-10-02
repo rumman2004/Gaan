@@ -6,8 +6,8 @@ import android.webkit.CookieManager
 import android.webkit.WebResourceResponse
 import android.webkit.WebResourceError
 import android.webkit.WebChromeClient
+import android.net.http.SslError
 import android.webkit.SslErrorHandler
-import android.webkit.SslError
 import android.webkit.ConsoleMessage
 import android.util.Log
 import android.webkit.WebResourceRequest
@@ -391,7 +391,7 @@ private fun SpotifyLoginSheet(
 
                             Log.i(
                                 "GaanSpotifyWebView",
-                                "WebView provider: \${WebView.getCurrentWebViewPackage()?.versionName ?: "unknown"}",
+                                "WebView provider: ${WebView.getCurrentWebViewPackage()?.versionName ?: "unknown"}",
                             )
 
                             webChromeClient = object : WebChromeClient() {
