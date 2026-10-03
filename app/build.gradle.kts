@@ -80,8 +80,8 @@ android {
         applicationId = "com.gaan.music"
         minSdk = 26
         targetSdk = 36
-        versionCode = 538
-        versionName = "5.8.96"
+        versionCode = 539
+        versionName = "5.8.97"
 
         buildConfigField("String", "GIT_HASH", "\"${getGitHash()}\"")
 
@@ -349,6 +349,7 @@ dependencies {
 
     implementation(libs.coil)
     implementation(libs.coil.network.okhttp)
+implementation(libs.coil.gif)
 
     implementation(libs.ucrop)
 

@@ -1,5 +1,15 @@
 # Gaan Release Notes
 
+## Version 5.8.97
+
+### ✨ What's New & Improved
+- **Animated Video Backgrounds:** Completely replaced the old pixelated background on the Home screen with stunning, high-quality MP4 looping video backgrounds that dynamically switch based on a 5-part time schedule (Morning, Day, Afternoon, Evening, Night).
+- **Home Screen Optimization:** Removed old, unused layout rendering code and redundant pixel-art calculations, improving overall performance and reducing rendering overhead.
+
+### 🛠️ Bug Fixes & Stability
+- **Spotify Login Window Fix:** Resolved the multi-window handling issue in the Spotify Import flow, fixing the crashes that occurred during the login process.
+- **Resource Cleanup:** Deleted unused placeholder XML drawables and migrated all video assets correctly to the `res/raw` directory for ExoPlayer to efficiently render.
+
 ## Version 5.8.96
 
 ### 🚀 What's New & Improved

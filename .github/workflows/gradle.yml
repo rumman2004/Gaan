@@ -50,6 +50,9 @@ jobs:
       - name: Create local.properties
         run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
+      - name: Increase Memory for CI
+        run: sed -i 's/-Xmx3g/-Xmx6g/g' gradle.properties
+
       - name: Create Debug Keystore
         run: |
           # Generate debug keystore at all possible default paths AGP may resolve to

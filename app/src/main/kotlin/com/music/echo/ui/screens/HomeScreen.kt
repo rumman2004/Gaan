@@ -576,80 +576,54 @@ fun DailyDiscoverCard(
 enum class PixelScene {
     MORNING,
     DAY,
+    AFTERNOON,
     EVENING,
     NIGHT
 }
 
-private data class LivingPixelStar(val x: Float, val y: Float, val size: Float, val phase: Float, val sparkle: Boolean)
-
-private data class LivingPixelPalette(
-    val top: Color, val upper: Color, val horizon: Color, val bottom: Color,
-    val back: Color, val middle: Color, val ground: Color, val accent: Color, val cloud: Color,
-)
-
-private fun livingPixelPalette(scene: PixelScene) = when (scene) {
-    PixelScene.MORNING -> LivingPixelPalette(Color(0xFF21133D), Color(0xFF513D70), Color(0xFFC77D75), Color(0xFFF2B36D), Color(0xFF765080), Color(0xFF4B315F), Color(0xFF211B38), Color(0xFFFFD166), Color(0xFFE9A7C1))
-    PixelScene.DAY -> LivingPixelPalette(Color(0xFF5DB6D9), Color(0xFF70C9E8), Color(0xFFA3DBE8), Color(0xFF2F789D), Color(0xFF4B91AE), Color(0xFF28627E), Color(0xFF173B52), Color(0xFFFFE066), Color.White)
-    PixelScene.EVENING -> LivingPixelPalette(Color(0xFF6D365F), Color(0xFFA34F75), Color(0xFFE68B75), Color(0xFF251632), Color(0xFF633A67), Color(0xFF3B234C), Color(0xFF170D25), Color(0xFFFF9F68), Color(0xFFB65B88))
-    PixelScene.NIGHT -> LivingPixelPalette(Color(0xFF080A18), Color(0xFF11142D), Color(0xFF191B3C), Color(0xFF1B1030), Color(0xFF25264D), Color(0xFF161832), Color(0xFF090A18), Color(0xFFF5E8B5), Color(0xFF64658C))
-}
-
-/** The Home screen's living, time-aware pixel world. */
+/** The Home screen's video background greeting card. */
 @Composable
 private fun AnimePixelGreetingCard(userName: String) {
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     LaunchedEffect(Unit) {
         while (true) { now = LocalDateTime.now(); kotlinx.coroutines.delay(1_000L) }
     }
-    val scene = when (now.hour) { in 5..11 -> PixelScene.MORNING; in 12..16 -> PixelScene.DAY; in 17..20 -> PixelScene.EVENING; else -> PixelScene.NIGHT }
-    val palette = livingPixelPalette(scene)
-    val skyTop by androidx.compose.animation.animateColorAsState(palette.top, androidx.compose.animation.core.tween(6000, easing = androidx.compose.animation.core.FastOutSlowInEasing), label = "livingSkyTop")
-    val skyUpper by androidx.compose.animation.animateColorAsState(palette.upper, androidx.compose.animation.core.tween(6000, easing = androidx.compose.animation.core.FastOutSlowInEasing), label = "livingSkyUpper")
-    val skyHorizon by androidx.compose.animation.animateColorAsState(palette.horizon, androidx.compose.animation.core.tween(6000, easing = androidx.compose.animation.core.FastOutSlowInEasing), label = "livingSkyHorizon")
-    val skyBottom by androidx.compose.animation.animateColorAsState(palette.bottom, androidx.compose.animation.core.tween(6000, easing = androidx.compose.animation.core.FastOutSlowInEasing), label = "livingSkyBottom")
-    val back by androidx.compose.animation.animateColorAsState(palette.back, androidx.compose.animation.core.tween(6000), label = "livingBack")
-    val middle by androidx.compose.animation.animateColorAsState(palette.middle, androidx.compose.animation.core.tween(6000), label = "livingMiddle")
-    val ground by androidx.compose.animation.animateColorAsState(palette.ground, androidx.compose.animation.core.tween(6000), label = "livingGround")
-    val accent by androidx.compose.animation.animateColorAsState(palette.accent, androidx.compose.animation.core.tween(5000), label = "livingAccent")
-    val cloudColor by androidx.compose.animation.animateColorAsState(palette.cloud, androidx.compose.animation.core.tween(6000), label = "livingCloud")
-    val stars = remember { val r = Random(8128); List(32) { LivingPixelStar(.04f + r.nextFloat() * .92f, .06f + r.nextFloat() * .48f, listOf(1.5f, 2f, 3f)[r.nextInt(3)], r.nextFloat(), r.nextInt(5) == 0) } }
-    val infinite = androidx.compose.animation.core.rememberInfiniteTransition(label = "livingPixelWorld")
-    val cloudA by infinite.animateFloat(-.2f, 1.1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(32000, easing = androidx.compose.animation.core.LinearEasing)), label = "cloudA")
-    val cloudB by infinite.animateFloat(1.1f, -.2f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(24000, easing = androidx.compose.animation.core.LinearEasing)), label = "cloudB")
-    val cloudC by infinite.animateFloat(-.25f, 1.12f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(38000, easing = androidx.compose.animation.core.LinearEasing)), label = "cloudC")
-    val cloudFloat by infinite.animateFloat(-.012f, .012f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(5200), androidx.compose.animation.core.RepeatMode.Reverse), label = "cloudFloat")
-    val celestialFloat by infinite.animateFloat(-.014f, .014f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(5000), androidx.compose.animation.core.RepeatMode.Reverse), label = "celestialFloat")
-    val glow by infinite.animateFloat(.78f, 1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(3400), androidx.compose.animation.core.RepeatMode.Reverse), label = "celestialGlow")
-    val scan by infinite.animateFloat(-.15f, 1.15f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(5000, easing = androidx.compose.animation.core.LinearEasing)), label = "scan")
-    val twinkle by infinite.animateFloat(0f, 1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(2600), androidx.compose.animation.core.RepeatMode.Reverse), label = "twinkle")
-    val time = now.hour + now.minute / 60f
-    val starTarget = when (scene) { PixelScene.NIGHT -> 1f; PixelScene.EVENING -> (time - 17f) / 4f; PixelScene.MORNING -> (1f - (time - 5f) / 7f).coerceIn(0f, .35f); else -> 0f }
-    val starAlpha by androidx.compose.animation.core.animateFloatAsState(starTarget.coerceIn(0f, 1f), androidx.compose.animation.core.tween(6000), label = "livingStars")
-    val greeting = when (scene) { PixelScene.MORNING -> "GOOD MORNING"; PixelScene.DAY -> "GOOD AFTERNOON"; PixelScene.EVENING -> "GOOD EVENING"; PixelScene.NIGHT -> "GOOD NIGHT" }
+    val scene = when {
+        now.hour in 5..9 -> PixelScene.MORNING
+        now.hour in 10..15 -> PixelScene.DAY
+        now.hour == 16 || (now.hour == 17 && now.minute < 30) -> PixelScene.AFTERNOON
+        (now.hour == 17 && now.minute >= 30) || now.hour in 18..20 -> PixelScene.EVENING
+        else -> PixelScene.NIGHT
+    }
+    val greeting = when (scene) { PixelScene.MORNING -> "GOOD MORNING"; PixelScene.DAY -> "GOOD AFTERNOON"; PixelScene.AFTERNOON -> "GOOD AFTERNOON"; PixelScene.EVENING -> "GOOD EVENING"; PixelScene.NIGHT -> "GOOD NIGHT" }
     val clock = now.format(DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()))
     val date = now.format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy", Locale.getDefault()))
     val shape = CutCornerShape(6.dp, 26.dp, 6.dp, 26.dp)
+    
+    // Fallback accent color for text
+    val accent = when (scene) {
+        PixelScene.MORNING -> Color(0xFFFFD166)
+        PixelScene.DAY -> Color(0xFFFFE066)
+        PixelScene.AFTERNOON -> Color(0xFFFFB566)
+        PixelScene.EVENING -> Color(0xFFFF9F68)
+        PixelScene.NIGHT -> Color(0xFFF5E8B5)
+    }
+
     Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).height(250.dp).clip(shape)) {
-        Canvas(Modifier.fillMaxSize()) {
-            val w = size.width; val h = size.height; val unit = (w / 100f).coerceAtLeast(4f)
-            drawRect(Brush.verticalGradient(listOf(skyTop, skyUpper, skyHorizon, skyBottom)))
-            drawRect(Brush.verticalGradient(listOf(Color.Transparent, accent.copy(alpha = .18f), Color.Transparent), startY = h * .38f, endY = h * .82f))
-            stars.forEachIndexed { index, star ->
-                val pulse = (.55f + .45f * kotlin.math.sin((twinkle + star.phase) * 6.283f * (1 + index % 3))).coerceIn(.25f, 1f); val a = starAlpha * pulse
-                drawRect(Color.White.copy(alpha = a), androidx.compose.ui.geometry.Offset(w * star.x, h * star.y), androidx.compose.ui.geometry.Size(star.size.dp.toPx(), star.size.dp.toPx()))
-                if (star.sparkle && a > .4f) { drawRect(Color.White.copy(alpha = a * .7f), androidx.compose.ui.geometry.Offset(w * star.x - unit, h * star.y), androidx.compose.ui.geometry.Size(unit * 3, star.size.dp.toPx())); drawRect(Color.White.copy(alpha = a * .7f), androidx.compose.ui.geometry.Offset(w * star.x, h * star.y - unit), androidx.compose.ui.geometry.Size(star.size.dp.toPx(), unit * 3)) }
-            }
-            fun cloud(x: Float, y: Float, scale: Float, alpha: Float) { val p = unit * scale; val left = w * x; val top = h * (y + cloudFloat); listOf(0 to 2, 2 to 1, 5 to 0, 8 to 2, 11 to 3).forEach { (px, py) -> drawRect(cloudColor.copy(alpha = alpha), androidx.compose.ui.geometry.Offset(left + px * p, top + py * p), androidx.compose.ui.geometry.Size(p * 4, p * 2)) } }
-            cloud(cloudA, .22f, 1f, .68f); cloud(cloudB, .35f, .72f, .40f); cloud(cloudC, .13f, 1.25f, .52f)
-            val celestialY = when (scene) { PixelScene.MORNING -> .55f - ((time - 5f) / 7f) * .28f; PixelScene.DAY -> .25f; PixelScene.EVENING -> .25f + ((time - 17f) / 4f) * .38f; PixelScene.NIGHT -> .25f }
-            val center = androidx.compose.ui.geometry.Offset(w * .77f, h * (celestialY + celestialFloat)); drawCircle(accent.copy(alpha = .11f * glow), unit * 13f, center); drawCircle(accent.copy(alpha = .16f * glow), unit * 8f, center)
-            if (scene == PixelScene.NIGHT) { drawCircle(accent, unit * 5f, center); drawCircle(skyUpper, unit * 4.1f, androidx.compose.ui.geometry.Offset(center.x + unit * 2.1f, center.y - unit * 1.2f)) } else { drawRect(accent, androidx.compose.ui.geometry.Offset(center.x - unit * 4, center.y - unit * 4), androidx.compose.ui.geometry.Size(unit * 8, unit * 8)); for (i in -2..2) { drawRect(accent.copy(alpha = .8f), androidx.compose.ui.geometry.Offset(center.x + i * unit * 2.4f - unit / 2, center.y - unit * 6), androidx.compose.ui.geometry.Size(unit, unit * 2)); drawRect(accent.copy(alpha = .8f), androidx.compose.ui.geometry.Offset(center.x + i * unit * 2.4f - unit / 2, center.y + unit * 4), androidx.compose.ui.geometry.Size(unit, unit * 2)) } }
-            fun mountain(color: Color, base: Float, peak: Float, step: Float) { val path = androidx.compose.ui.graphics.Path().apply { moveTo(0f, h * base); var x = -unit * 4; var i = 0; while (x < w + unit * 4) { lineTo(x, h * peak + (i % 3) * unit * 2); x += w * step; i++ }; lineTo(w, h * base); close() }; drawPath(path, color) }
-            mountain(back.copy(alpha = .72f), .80f, .58f, .16f); mountain(middle.copy(alpha = .90f), .87f, .66f, .20f); drawRect(ground, androidx.compose.ui.geometry.Offset(0f, h * .86f), androidx.compose.ui.geometry.Size(w, h * .14f))
-            for (i in 0..18) drawRect(accent.copy(alpha = .18f), androidx.compose.ui.geometry.Offset((i * 47 % 100) / 100f * w, h * (.84f + (i % 3) * .025f)), androidx.compose.ui.geometry.Size(unit, unit * (1 + i % 2)))
-            drawRect(accent.copy(alpha = .25f), androidx.compose.ui.geometry.Offset(w * scan, h - unit * 2), androidx.compose.ui.geometry.Size(unit * 9, unit)); drawRect(accent.copy(alpha = .45f), style = androidx.compose.ui.graphics.drawscope.Stroke(2f), size = size)
+        val bgRes = when (scene) {
+            PixelScene.MORNING -> iad1tya.echo.music.R.raw.bg_morning
+            PixelScene.DAY -> iad1tya.echo.music.R.raw.bg_day
+            PixelScene.AFTERNOON -> iad1tya.echo.music.R.raw.bg_afternoon
+            PixelScene.EVENING -> iad1tya.echo.music.R.raw.bg_evening
+            PixelScene.NIGHT -> iad1tya.echo.music.R.raw.bg_night
         }
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .62f)), startY = 95f, endY = 250f)))
+
+        LoopingVideoBackground(
+            videoRes = bgRes,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.Black.copy(alpha = 0.35f), Color.Black.copy(alpha = 0.15f), Color.Transparent))))
         Column(Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 15.dp).fillMaxWidth(.76f)) {
             Text(greeting, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.5.sp, color = accent)
             Text("Hello, ${userName.ifBlank { "Guest" }}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -659,556 +633,6 @@ private fun AnimePixelGreetingCard(userName: String) {
         }
         Row(Modifier.align(Alignment.TopStart).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) { repeat(5) { Box(Modifier.size(if (it == 0) 8.dp else 5.dp).background(accent.copy(alpha = if (it == 0) .95f else .45f))) } }
         Box(Modifier.align(Alignment.TopEnd).padding(14.dp).size(6.dp).background(accent))
-    }
-}
-
-@OptIn(ExperimentalAnimationApi::class)
-@Composable
-private fun LegacyAnimePixelGreetingCard(
-    userName: String,
-) {
-    var now by remember {
-        mutableStateOf(LocalDateTime.now())
-    }
-
-    /*
-     * Keep the clock synchronized with the phone.
-     * 30 seconds is enough for the UI while avoiding
-     * unnecessary recompositions every second.
-     */
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = LocalDateTime.now()
-            kotlinx.coroutines.delay(30_000L)
-        }
-    }
-
-    val hour = now.hour
-    val minute = now.minute
-
-    val scene = when (hour) {
-        in 5..11 -> PixelScene.MORNING
-        in 12..16 -> PixelScene.DAY
-        in 17..20 -> PixelScene.EVENING
-        else -> PixelScene.NIGHT
-    }
-
-    val greeting = when (scene) {
-        PixelScene.MORNING -> "Good Morning"
-        PixelScene.DAY -> "Good Afternoon"
-        PixelScene.EVENING -> "Good Evening"
-        PixelScene.NIGHT -> "Good Night"
-    }
-
-    /*
-     * ─────────────────────────────────────────
-     * TARGET SCENE COLORS
-     * ─────────────────────────────────────────
-     */
-    data class SceneColors(
-        val top: Color,
-        val middle: Color,
-        val bottom: Color,
-        val accent: Color,
-        val foreground: Color,
-        val secondary: Color,
-    )
-
-    val targetColors = when (scene) {
-        PixelScene.MORNING -> SceneColors(
-            top = Color(0xFF21133D),
-            middle = Color(0xFF613E67),
-            bottom = Color(0xFF171224),
-            accent = Color(0xFFFFC857),
-            foreground = Color.White,
-            secondary = Color.White.copy(alpha = 0.78f),
-        )
-        PixelScene.DAY -> SceneColors(
-            top = Color(0xFF5DB6D9),
-            middle = Color(0xFF2F789D),
-            bottom = Color(0xFF19334A),
-            accent = Color(0xFFFFD166),
-            foreground = Color.White,
-            secondary = Color.White.copy(alpha = 0.82f),
-        )
-        PixelScene.EVENING -> SceneColors(
-            top = Color(0xFF6D365F),
-            middle = Color(0xFF351D48),
-            bottom = Color(0xFF120C20),
-            accent = Color(0xFFFF7CCF),
-            foreground = Color.White,
-            secondary = Color.White.copy(alpha = 0.80f),
-        )
-        PixelScene.NIGHT -> SceneColors(
-            top = Color(0xFF080A18),
-            middle = Color(0xFF11142D),
-            bottom = Color(0xFF1B1030),
-            accent = Color(0xFFB88CFF),
-            foreground = Color.White,
-            secondary = Color.White.copy(alpha = 0.76f),
-        )
-    }
-
-    /*
-     * ─────────────────────────────────────────
-     * SMOOTH SCENE COLOR TRANSITIONS
-     * ─────────────────────────────────────────
-     */
-    val skyTop by androidx.compose.animation.animateColorAsState(
-        targetValue = targetColors.top,
-        animationSpec = androidx.compose.animation.core.tween(
-            durationMillis = 4000,
-            easing = androidx.compose.animation.core.FastOutSlowInEasing,
-        ),
-        label = "PixelSkyTop",
-    )
-
-    val skyMiddle by androidx.compose.animation.animateColorAsState(
-        targetValue = targetColors.middle,
-        animationSpec = androidx.compose.animation.core.tween(
-            durationMillis = 4000,
-            easing = androidx.compose.animation.core.FastOutSlowInEasing,
-        ),
-        label = "PixelSkyMiddle",
-    )
-
-    val skyBottom by androidx.compose.animation.animateColorAsState(
-        targetValue = targetColors.bottom,
-        animationSpec = androidx.compose.animation.core.tween(
-            durationMillis = 4000,
-            easing = androidx.compose.animation.core.FastOutSlowInEasing,
-        ),
-        label = "PixelSkyBottom",
-    )
-
-    val accent by androidx.compose.animation.animateColorAsState(
-        targetValue = targetColors.accent,
-        animationSpec = androidx.compose.animation.core.tween(
-            durationMillis = 3000,
-            easing = androidx.compose.animation.core.FastOutSlowInEasing,
-        ),
-        label = "PixelAccent",
-    )
-
-    /*
-     * ─────────────────────────────────────────
-     * CELESTIAL OBJECT ANIMATION
-     * ─────────────────────────────────────────
-     */
-    val celestialAlpha by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = when (scene) {
-            PixelScene.MORNING -> 0.95f
-            PixelScene.DAY -> 1f
-            PixelScene.EVENING -> 0.85f
-            PixelScene.NIGHT -> 1f
-        },
-        animationSpec = androidx.compose.animation.core.tween(durationMillis = 2500),
-        label = "CelestialAlpha",
-    )
-
-    val celestialY by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = when (scene) {
-            PixelScene.MORNING -> 0.36f
-            PixelScene.DAY -> 0.22f
-            PixelScene.EVENING -> 0.48f
-            PixelScene.NIGHT -> 0.25f
-        },
-        animationSpec = androidx.compose.animation.core.tween(
-            durationMillis = 4500,
-            easing = androidx.compose.animation.core.FastOutSlowInEasing,
-        ),
-        label = "CelestialY",
-    )
-
-    /*
-     * ─────────────────────────────────────────
-     * INFINITE MICRO ANIMATIONS
-     * ─────────────────────────────────────────
-     */
-    val infiniteTransition =
-        androidx.compose.animation.core.rememberInfiniteTransition(label = "GaanPixelInfinite")
-
-    val scanOffset by infiniteTransition.animateFloat(
-        initialValue = -0.2f,
-        targetValue = 1.2f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = androidx.compose.animation.core.tween(
-                durationMillis = 4200,
-                easing = androidx.compose.animation.core.LinearEasing,
-            ),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Restart,
-        ),
-        label = "PixelScan",
-    )
-
-    val starPulse by infiniteTransition.animateFloat(
-        initialValue = 0.30f,
-        targetValue = 0.95f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = androidx.compose.animation.core.tween(
-                durationMillis = 1800,
-                easing = androidx.compose.animation.core.FastOutSlowInEasing,
-            ),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
-        ),
-        label = "StarPulse",
-    )
-
-    val celestialPulse by infiniteTransition.animateFloat(
-        initialValue = 0.82f,
-        targetValue = 1.0f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = androidx.compose.animation.core.tween(
-                durationMillis = 2400,
-                easing = androidx.compose.animation.core.FastOutSlowInEasing,
-            ),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
-        ),
-        label = "CelestialPulse",
-    )
-
-    val starAlpha by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = when (scene) {
-            PixelScene.MORNING -> 0.05f
-            PixelScene.DAY -> 0f
-            PixelScene.EVENING -> 0.65f
-            PixelScene.NIGHT -> 1f
-        },
-        animationSpec = androidx.compose.animation.core.tween(durationMillis = 5000),
-        label = "StarSceneAlpha",
-    )
-
-    val clockText = remember(now.hour, now.minute) {
-        now.format(DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()))
-    }
-
-    val dateText = remember(now.dayOfWeek, now.month, now.dayOfMonth, now.year) {
-        now.format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy", Locale.getDefault()))
-    }
-
-    val shape = CutCornerShape(
-        topStart = 8.dp,
-        topEnd = 28.dp,
-        bottomEnd = 8.dp,
-        bottomStart = 28.dp,
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .height(238.dp)
-            .clip(shape)
-    ) {
-
-        /*
-         * PIXEL ART BACKGROUND
-         */
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-            val unit = 7.dp.toPx().coerceAtLeast(4f)
-
-            // Animated sky
-            drawRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(skyTop, skyMiddle, skyBottom)
-                ),
-                size = size,
-            )
-
-            // Horizon glow
-            drawRect(
-                brush = Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0f to Color.Transparent,
-                        0.45f to accent.copy(alpha = 0.07f),
-                        1f to Color.Transparent,
-                    ),
-                    startY = h * 0.42f,
-                    endY = h * 0.78f,
-                ),
-                size = size,
-            )
-
-            // Stars (fade in/out by scene)
-            val stars = listOf(
-                Triple(0.07f, 0.10f, 1.0f),
-                Triple(0.17f, 0.25f, 0.7f),
-                Triple(0.29f, 0.08f, 1.2f),
-                Triple(0.39f, 0.20f, 0.8f),
-                Triple(0.51f, 0.06f, 1.1f),
-                Triple(0.63f, 0.22f, 0.7f),
-                Triple(0.76f, 0.09f, 1.2f),
-                Triple(0.89f, 0.25f, 0.8f),
-            )
-
-            stars.forEachIndexed { index, (x, y, scale) ->
-                val individualPulse = if (index % 2 == 0) starPulse else starPulse * 0.72f
-                drawRect(
-                    color = Color.White.copy(alpha = starAlpha * individualPulse * scale),
-                    topLeft = androidx.compose.ui.geometry.Offset(w * x, h * y),
-                    size = androidx.compose.ui.geometry.Size(unit * scale, unit * scale),
-                )
-            }
-
-            // Celestial object (sun or moon)
-            val celestialCenter = androidx.compose.ui.geometry.Offset(
-                x = w * 0.78f,
-                y = h * celestialY,
-            )
-
-            // Atmospheric glow
-            drawCircle(
-                color = accent.copy(alpha = 0.10f * celestialPulse * celestialAlpha),
-                radius = unit * 11f,
-                center = celestialCenter,
-            )
-            drawCircle(
-                color = accent.copy(alpha = 0.13f * celestialPulse * celestialAlpha),
-                radius = unit * 7.5f,
-                center = celestialCenter,
-            )
-
-            if (scene == PixelScene.NIGHT) {
-                // Crescent moon
-                drawCircle(
-                    color = accent.copy(alpha = celestialAlpha),
-                    radius = unit * 4.1f,
-                    center = celestialCenter,
-                )
-                drawCircle(
-                    color = skyMiddle,
-                    radius = unit * 3.45f,
-                    center = androidx.compose.ui.geometry.Offset(
-                        x = celestialCenter.x + unit * 1.8f,
-                        y = celestialCenter.y - unit * 1.0f,
-                    ),
-                )
-                for (i in -2..2) {
-                    drawRect(
-                        color = accent.copy(alpha = 0.72f),
-                        topLeft = androidx.compose.ui.geometry.Offset(
-                            celestialCenter.x + i * unit * 2.1f - unit / 2f,
-                            celestialCenter.y - unit / 2f,
-                        ),
-                        size = androidx.compose.ui.geometry.Size(unit, unit),
-                    )
-                }
-            } else {
-                // Sun
-                drawCircle(
-                    color = accent.copy(alpha = celestialAlpha),
-                    radius = unit * 3.8f,
-                    center = celestialCenter,
-                )
-                for (i in -2..2) {
-                    drawRect(
-                        color = accent.copy(alpha = 0.65f * celestialAlpha),
-                        topLeft = androidx.compose.ui.geometry.Offset(
-                            celestialCenter.x + i * unit * 2.2f - unit / 2f,
-                            celestialCenter.y - unit / 2f,
-                        ),
-                        size = androidx.compose.ui.geometry.Size(unit, unit),
-                    )
-                }
-            }
-
-            // Pixel city / horizon
-            val buildings = listOf(8, 12, 10, 16, 11, 8, 15, 12, 9, 14, 10)
-            var buildingX = 0f
-
-            buildings.forEachIndexed { index, widthUnits ->
-                val buildingWidth = widthUnits * unit
-                val buildingHeight = (3 + ((index * 7) % 7)) * unit
-                val buildingColor = if (scene == PixelScene.DAY || scene == PixelScene.MORNING) {
-                    Color(0xFF31556A).copy(alpha = 0.72f)
-                } else {
-                    Color(0xFF0A0D1B).copy(alpha = 0.92f)
-                }
-
-                drawRect(
-                    color = buildingColor,
-                    topLeft = androidx.compose.ui.geometry.Offset(buildingX, h * 0.78f - buildingHeight),
-                    size = androidx.compose.ui.geometry.Size(buildingWidth, buildingHeight),
-                )
-
-                if (scene == PixelScene.EVENING || scene == PixelScene.NIGHT) {
-                    for (row in 1..3) {
-                        for (column in 1 until widthUnits step 4) {
-                            if ((row + column + index) % 3 != 0) {
-                                drawRect(
-                                    color = accent.copy(alpha = 0.20f),
-                                    topLeft = androidx.compose.ui.geometry.Offset(
-                                        buildingX + column * unit,
-                                        h * 0.78f - buildingHeight + row * unit * 2.2f,
-                                    ),
-                                    size = androidx.compose.ui.geometry.Size(unit, unit),
-                                )
-                            }
-                        }
-                    }
-                }
-
-                buildingX += buildingWidth + unit
-            }
-
-            // Ground
-            drawRect(
-                color = if (scene == PixelScene.DAY || scene == PixelScene.MORNING) {
-                    Color(0xFF294657)
-                } else {
-                    Color(0xFF070913)
-                },
-                topLeft = androidx.compose.ui.geometry.Offset(0f, h * 0.86f),
-                size = androidx.compose.ui.geometry.Size(w, h * 0.14f),
-            )
-
-            // Horizon line
-            drawRect(
-                color = accent.copy(alpha = 0.28f),
-                topLeft = androidx.compose.ui.geometry.Offset(0f, h * 0.72f),
-                size = androidx.compose.ui.geometry.Size(w, 2f),
-            )
-
-            // Animated pixel scan
-            drawRect(
-                color = accent.copy(alpha = 0.32f),
-                topLeft = androidx.compose.ui.geometry.Offset(
-                    w * scanOffset - unit * 8f,
-                    h - unit * 1.5f,
-                ),
-                size = androidx.compose.ui.geometry.Size(unit * 8f, unit * 1.5f),
-            )
-
-            // Pixel border
-            drawRect(
-                color = accent.copy(alpha = 0.48f),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f),
-                size = size,
-            )
-        }
-
-        // Left text contrast gradient
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.58f),
-                            Color.Black.copy(alpha = 0.32f),
-                            Color.Transparent,
-                        )
-                    )
-                )
-        )
-
-        // Content
-        Column(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxWidth(0.65f)
-                .padding(start = 18.dp, end = 8.dp),
-            horizontalAlignment = Alignment.Start,
-        ) {
-
-            // Animated greeting cross-fade on scene change
-            androidx.compose.animation.AnimatedContent(
-                targetState = greeting,
-                transitionSpec = {
-                    androidx.compose.animation.fadeIn(
-                        animationSpec = androidx.compose.animation.core.tween(700)
-                    ) togetherWith androidx.compose.animation.fadeOut(
-                        animationSpec = androidx.compose.animation.core.tween(300)
-                    )
-                },
-                label = "GreetingTransition",
-            ) { currentGreeting ->
-                Text(
-                    text = currentGreeting,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = targetColors.foreground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-
-            Text(
-                text = "Let the music set the mood.",
-                style = MaterialTheme.typography.bodySmall,
-                color = targetColors.secondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-
-            Spacer(modifier = Modifier.height(13.dp))
-
-            // Clock chip
-            Box(
-                modifier = Modifier
-                    .clip(CutCornerShape(6.dp))
-                    .background(Color.Black.copy(alpha = 0.48f))
-                    .border(
-                        width = 1.dp,
-                        color = accent.copy(alpha = 0.50f),
-                        shape = CutCornerShape(6.dp),
-                    )
-                    .padding(horizontal = 10.dp, vertical = 8.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = when (scene) {
-                            PixelScene.MORNING -> "☀"
-                            PixelScene.DAY -> "◈"
-                            PixelScene.EVENING -> "✦"
-                            PixelScene.NIGHT -> "☾"
-                        },
-                        color = accent,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-
-                    Column {
-                        Text(
-                            text = clockText,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            maxLines = 1,
-                        )
-                        Text(
-                            text = dateText,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.68f),
-                            maxLines = 1,
-                        )
-                    }
-                }
-            }
-        }
-
-        // Pixel indicator dots
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
-        ) {
-            repeat(5) { index ->
-                Box(
-                    modifier = Modifier
-                        .size(if (index == 0) 8.dp else 5.dp)
-                        .background(
-                            accent.copy(alpha = if (index == 0) 0.95f else 0.45f)
-                        )
-                )
-            }
-        }
     }
 }
 
@@ -3314,4 +2738,46 @@ fun HomeScreen(
 
         }
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// LOOPING VIDEO BACKGROUND HELPER
+// ─────────────────────────────────────────────────────────────────────────
+
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+@Composable
+fun LoopingVideoBackground(videoRes: Int, modifier: Modifier = Modifier) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val exoPlayer = remember {
+        androidx.media3.exoplayer.ExoPlayer.Builder(context).build().apply {
+            repeatMode = androidx.media3.common.Player.REPEAT_MODE_ONE
+            playWhenReady = true
+            volume = 0f // Mute background video
+        }
+    }
+
+    LaunchedEffect(videoRes) {
+        val uri = "android.resource://${context.packageName}/$videoRes"
+        exoPlayer.setMediaItem(androidx.media3.common.MediaItem.fromUri(uri))
+        exoPlayer.prepare()
+    }
+
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            exoPlayer.release()
+        }
+    }
+
+    androidx.compose.ui.viewinterop.AndroidView(
+        factory = { ctx ->
+            androidx.media3.ui.PlayerView(ctx).apply {
+                player = exoPlayer
+                useController = false
+                resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                // Hide any buffering spinner
+                setShowBuffering(androidx.media3.ui.PlayerView.SHOW_BUFFERING_NEVER)
+            }
+        },
+        modifier = modifier
+    )
 }
