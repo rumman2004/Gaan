@@ -304,7 +304,7 @@ private fun SupportHero() {
             verticalArrangement = Arrangement.Center
         ) {
             androidx.compose.foundation.Image(
-                painter = painterResource(R.mipmap.ic_launcher_round),
+                painter = painterResource(R.drawable.ic_launcher_nobg),
                 contentDescription = "Gaan App Icon",
                 modifier = Modifier
                     .size(96.dp)
